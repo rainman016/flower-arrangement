@@ -1,0 +1,60 @@
+import assert from 'node:assert/strict'
+import { chromium } from '@playwright/test'
+
+const url = process.argv[2]
+if (!url) throw new Error('请提供要验证的网页版网址。')
+
+const browser = await chromium.launch({ channel: 'chrome' })
+try {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true })
+  const page = await context.newPage()
+  page.setDefaultTimeout(90000)
+  const errors = [], models = []
+  page.on('pageerror', error => errors.push(error.message))
+  page.on('request', request => {
+    const path = new URL(request.url()).pathname
+    if (/\.(glb|bin|hdr)$/.test(path)) models.push(path)
+  })
+  const menu = page.getByRole('group', { name: '选择场景' })
+  const button = name => page.getByRole('button', { name, exact: true })
+  const save = () => page.evaluate(() => localStorage.getItem('yixihua:five-forms:v1'))
+  await page.goto(url, { waitUntil: 'domcontentloaded' })
+  await menu.waitFor()
+  assert.equal(await menu.getByRole('button').count(), 2)
+  assert.equal(await page.locator('canvas').count(), 0)
+  assert.deepEqual(models, [])
+  assert.equal(await save(), null)
+  await page.waitForFunction(() => [...document.querySelectorAll('.scene-entry-card img')].every(img => img.complete && img.naturalWidth))
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+  const analytics = await page.locator('script[src*="cloudflareinsights.com"]').count()
+  await page.route(/creek[^/]*\.glb(?:$|\?)/, route => route.abort(), { times: 1 })
+  await button('溪畔观流').click()
+  await page.getByRole('alert').waitFor()
+  assert.equal(await save(), null)
+  await button('溪畔观流').click()
+  await button('开始插花').click()
+  await button('进入备席').click()
+  await page.locator('main[data-core-ready="true"][data-stage="prepare"]').waitFor()
+  const saved = await save()
+  assert.ok(saved)
+  assert.ok(models.some(path => path.includes('creek')))
+  assert.ok(models.every(path => !path.includes('bamboo')))
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await button('竹林清风').click()
+  assert.equal(await save(), saved)
+  await button('返回').click()
+  await button('继续上次花席').click()
+  await page.locator('main[data-core-ready="true"][data-stage="prepare"]').waitFor()
+  assert.equal(await save(), saved)
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await button('竹林清风').click()
+  await button('开启新花席').click()
+  await page.locator('main[data-core-ready="true"][data-stage="arrival"]').waitFor()
+  assert.ok(models.some(path => path.includes('bamboo')))
+  assert.notEqual(await save(), saved)
+  assert.deepEqual(errors, [])
+  console.log('两景选取、手机布局、加载失败重试、取消替换、原样续玩与确认新开全部通过。统计脚本数量', analytics)
+} finally {
+  await browser.close()
+}

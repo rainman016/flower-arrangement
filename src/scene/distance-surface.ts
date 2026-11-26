@@ -2,7 +2,7 @@ import { Vector3, BufferAttribute, BufferGeometry, DoubleSide, MeshBasicMaterial
 
 import { captureFaces, distanceShell } from './distance-shell'
 
-async function loadDepthImage(blob:Blob){
+async function loadFaceTexture(blob:Blob){
   const url=URL.createObjectURL(blob)
   return new TextureLoader().loadAsync(url).finally(()=>URL.revokeObjectURL(url))
 }
@@ -67,13 +67,11 @@ export async function loadDistanceSurface(url:string){
     faces.push({colour,depth,occlusion})
   }
   const shell=precise?distanceShell(faces.map(face=>face.depth),grid,origin):faces.map((face,i)=>legacyFace(face.depth,grid,i))
-  for(const [i,face] of faces.entries()){
+  const sideMeshes=await Promise.all(faces.map(async(face,i)=>{
     const {positions,captureUv,indices}=shell[i]
-    if(!indices.length)continue
-    const image=URL.createObjectURL(face.colour)
-    const texture=await new TextureLoader().loadAsync(image).finally(()=>URL.revokeObjectURL(image))
+    if(!indices.length)return null
+    const [texture,metres]=await Promise.all([loadFaceTexture(face.colour),face.occlusion?loadFaceTexture(face.occlusion):null])
     texture.colorSpace=SRGBColorSpace
-    const metres=face.occlusion?await loadDepthImage(face.occlusion):null
     if(metres){metres.minFilter=metres.magFilter=NearestFilter;metres.generateMipmaps=false}
     const geometry=new BufferGeometry()
     geometry.setAttribute('position',new BufferAttribute(positions,3))
@@ -105,8 +103,9 @@ export async function loadDistanceSurface(url:string){
           gl_FragColor=vec4(colour.rgb,1.);
           #include <colorspace_fragment>
         }`})
-    const mesh=new Mesh(geometry,material);mesh.raycast=()=>{};group.add(mesh)
-  }
+    const mesh=new Mesh(geometry,material);mesh.raycast=()=>{};return mesh
+  }))
+  for(const mesh of sideMeshes)if(mesh)group.add(mesh)
   if(offset<data.byteLength){
     const image=URL.createObjectURL(new Blob([data.slice(offset)],{type:'image/png'}))
     const depth=await new TextureLoader().loadAsync(image).finally(()=>URL.revokeObjectURL(image))

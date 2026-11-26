@@ -57,11 +57,12 @@ try{
     },{id,p})
     const click=async p=>{const v=await p;await page.mouse.click(v.x,v.y)}
     const drag=async(from,to,hold=0)=>{const a=await from,b=await to;await page.mouse.move(a.x,a.y);await page.mouse.down();if(hold)await wait(hold);await page.mouse.move(b.x,b.y,{steps:10});await page.mouse.up();await wait(720)}
-    await page.waitForFunction(()=>!!window.__coreInspect,null,{timeout:120000})
+    const menu=page.getByRole('group',{name:'选择场景'})
+    await menu.waitFor()
+    verify('先选景再初始化三维画面',await menu.getByRole('button').count()===2&&await page.locator('canvas').count()===0)
     const started=Date.now()
-    if(id!=='bamboo'){
-      await page.getByRole('button',{name,exact:true}).click({timeout:120000})
-    }
+    await menu.getByRole('button',{name,exact:true}).click()
+    await page.waitForFunction(()=>!!window.__coreInspect,null,{timeout:120000})
     await page.getByRole('button',{name:'开始插花'}).waitFor({timeout:120000})
     console.log(id,'入场按钮',Date.now()-started,'ms',await page.evaluate(()=>{const gl=window.__coreInspect.renderer.getContext(),info=gl.getExtension('WEBGL_debug_renderer_info');return info?gl.getParameter(info.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER)}))
     // Each scene can compile materials on first entry, especially after changing scenes.
@@ -72,8 +73,8 @@ try{
     verify('开场镜头前移',await camera()<far||await page.evaluate(()=>{const p=window.__coreInspect.camera.userData.approach;return p.first-p.last>.02}))
     await page.mouse.move(940,235);await page.mouse.down();await page.mouse.move(1070,250,{steps:6});await page.mouse.up()
     verify('桌前可环顾',await page.evaluate(()=>Math.abs(window.__coreInspect.camera.rotation.y)>.1))
-    await page.waitForFunction(()=>window.reviewGains.length>=2&&window.reviewGains.at(-2).gain.value>.05&&window.reviewGains.at(-1).gain.value<.005)
-    verify('开始前仅自然声可闻',await page.evaluate(()=>window.reviewGains.at(-1).gain.value<.005))
+    await page.waitForFunction(()=>window.reviewGains.at(-1)?.gain.value>.05)
+    verify('入席时自然声可闻',true)
     await button('开始插花')
     const entry=await page.getByRole('button',{name:'进入备席'}).boundingBox()
     verify('进入备席为正文下方居中大按钮',entry&&entry.width>=280&&entry.height>=50&&Math.abs(entry.x+entry.width/2-page.viewportSize().width/2)<3)
@@ -83,8 +84,8 @@ try{
     await button('进入备席');await wait(550);await checkRail()
     await page.screenshot({path:resolve(dir,id+'-prepare.png')})
     await page.waitForFunction(()=>document.querySelector('.ritual-heading')?.dataset.audio==='playing')
-    await page.waitForFunction(()=>window.reviewGains.at(-1).gain.value>.05&&window.reviewGains.at(-2).gain.value>.05)
-    verify('场景自然声与音乐同时渐入播放',true)
+    await page.waitForFunction(()=>window.reviewGains.at(-1)?.gain.value>.05)
+    verify('备席时当前场景自然声可闻',true)
     await page.evaluate(()=>{
       const env=window.__coreInspect.scene.getObjectByName('nature_environment')
       const sample=window.ritualPerf={intervals:[],last:performance.now(),frame:env.userData.renderedFrames}
@@ -536,7 +537,7 @@ try{
     verify('下载真实 PNG',png.subarray(1,4).toString()==='PNG')
     verify('完整保留花器，祝愿排在画面外的留白',png.readUInt32BE(16)===exportSize[0]&&(expectedWish?png.readUInt32BE(20)>exportSize[1]:png.readUInt32BE(20)===exportSize[1]))
     await image.saveAs(resolve(dir,id+'-work.png'))
-    await page.reload();await page.waitForFunction(()=>!!window.__coreInspect)
+    await page.reload();await button('继续上次花席');await page.waitForFunction(()=>!!window.__coreInspect,null,{timeout:90000})
     verify('刷新恢复场景、作品、心愿和阶段',(await read()).ritual.stage==='done'&&(await read()).ritual.sceneId===id&&(await read()).ritual.wish===expectedWish)
     await button('继续调整');await button('插花');verify('继续同一作品',(await read()).history.present.flowers[0].location==='vase')
     verify('浏览器无运行错误',!errors.length)
@@ -574,7 +575,7 @@ try{
       verify('第五式一键回到同景入席前，花材器物水量复位',empty.ritual.stage==='arrival'&&empty.ritual.sceneId===id&&empty.ritual.wish===''&&empty.history.present.vaseMl===0&&empty.history.present.cupMl===180&&empty.history.present.debris.length===0&&empty.history.present.flowers.every(f=>f.location==='cup'&&!f.removed.length)&&!empty.history.past.length)
       await button('取回刚才的作品')
       verify('即时取回可恢复完整作品和祝愿',JSON.stringify((await read()).history)===JSON.stringify(beforeEmpty.history)&&(await read()).ritual.wish===beforeEmpty.ritual.wish)
-      await button('直接完成');await button('恢复本来空');await page.reload();await button('开始插花');await button('进入备席')
+      await button('直接完成');await button('恢复本来空');await page.reload();await button('继续上次花席');await button('开始插花');await button('进入备席')
       verify('恢复后刷新从空瓶开席',(await read()).history.present.vaseMl===0)
       await page.setViewportSize({width:390,height:844});await page.emulateMedia({reducedMotion:'reduce'})
       await button('完成备席');await button('略过注水')

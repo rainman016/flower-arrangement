@@ -26,7 +26,7 @@ const html='<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta 
 await mkdir(output,{recursive:true})
 await writeFile(resolve(output,'play.html'),html)
 const sourcePaths=['src/core-main.tsx','src/app/CorePrototype.tsx','src/components/game/float-position.ts','src/state/core-store.ts','src/services/core-progress.ts','src/game/free-cut.ts','src/game/types.ts','src/game/rules.ts','src/game/reducer.ts','src/game/history.ts','src/scene/core/CoreCanvas.tsx','src/scene/core/CoreControls.tsx','src/scene/core/clip-geometry.ts','src/scene/core/botanical-geometry.ts','src/scene/core/core-transforms.ts','src/scene/NatureEnvironment.tsx','src/scene/SceneLighting.tsx','src/scene/PropGlass.tsx','src/services/scene-assets.ts','src/content/catalog.ts','src/content/scene-view.ts','src/styles/core.css','src/styles/theme.css','scripts/build-core-prototype.mjs']
-if(final)sourcePaths.push('src/main.tsx','src/components/game/RitualGuide.tsx','src/scene/core/RitualControls.tsx','src/services/ritual-progress.ts','src/services/soundscape.ts','src/styles/ritual.css','src/content/ritual-source.json')
+if(final)sourcePaths.push('src/main.tsx','src/app/SceneEntry.tsx','src/styles/scene-entry.css','src/components/game/RitualGuide.tsx','src/scene/core/RitualControls.tsx','src/services/ritual-progress.ts','src/services/soundscape.ts','src/styles/ritual.css','src/content/ritual-source.json')
 const bundledSources=scripts.flatMap(chunk=>chunk.moduleIds??Object.keys(chunk.modules??{}))
   .map(id=>relative(root,id.split('?')[0]).replaceAll('\\','/'))
   .filter(id=>id.startsWith('src/')&&!id.includes('\0'))

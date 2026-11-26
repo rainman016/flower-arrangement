@@ -4,6 +4,8 @@
 
 **[打开网页版](https://rainman016.github.io/flower-arrangement/)** · [低画质入口](https://rainman016.github.io/flower-arrangement/?quality=low)
 
+每次打开或刷新网页，先选「竹林清风」或「溪畔观流」。此时只加载两张预览图和界面，选定后才载入对应的三维场景。有存档可点「继续上次花席」，选新场景会先提示确认。
+
 玩家需要支持 WebGL 2 且开启图形加速的浏览器。手机推荐直接用 Safari 或 Chrome 打开网址。自然声在与页面交互后播放。
 
 ## 本地开发

@@ -14,7 +14,7 @@ type CoreStore={
   saving:boolean; saveNotice:string
   insertPreview:Pose|null; previewInsert:(pose:Pose|null)=>void
   ritual:Ritual|null; cupHeld:boolean; pourPhase:PourPhase; offering:number
-  openJourney:()=>void; newJourney:(scene:SceneId)=>void; updateRitual:(patch:Partial<Ritual>)=>void; holdCup:(value:boolean)=>void
+  openJourney:()=>boolean; newJourney:(scene:SceneId)=>void; updateRitual:(patch:Partial<Ritual>)=>void; holdCup:(value:boolean)=>void
   history:History; selectedId:string|null; heldId:string|null; scissors:boolean; turn:Quat; mode:Mode
   message:string; blocked:string|null; storageError:boolean; epoch:number; serial:number; lastCommand:Command|null
   select:(id:string)=>void; takeScissors:()=>void; parkScissors:()=>void; putDown:()=>void
@@ -68,6 +68,7 @@ export const useCoreStore=create<CoreStore>((set,get)=>{
       try{original=localStorage.getItem(RITUAL_KEY)}catch{/* in-memory play */}
       const saved=original?decodeRitual(original):undefined
       set({history:saved?.history??ritualHistory(),ritual:saved?.ritual??freshRitual(),blocked:original&&!saved?original:null,message:''})
+      return original!==null
     },
     updateRitual:patch=>{
       const s=get();if(!s.ritual||s.blocked)return

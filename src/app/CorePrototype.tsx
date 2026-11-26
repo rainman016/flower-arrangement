@@ -25,8 +25,8 @@ class SceneBoundary extends Component<{children:ReactNode},{failed:boolean}>{
   static getDerivedStateFromError(){return {failed:true}}
   render(){return this.state.failed?<div className="core-loading" role="alert"><p>花席暂时无法显示，作品进度仍会保留。</p><Button onClick={()=>location.reload()}>重新载入</Button></div>:this.props.children}
 }
-export default function CorePrototype(){
-  const g=useCoreStore(),[assets,setAssets]=useState<SceneAssets>(),[error,setError]=useState(''),[ready,setReady]=useState(false)
+export default function CorePrototype({initialAssets}:{initialAssets?:SceneAssets}={}){
+  const g=useCoreStore(),[assets,setAssets]=useState<SceneAssets | undefined>(initialAssets),[error,setError]=useState(''),[ready,setReady]=useState(false)
   const [help,setHelp]=useState(false),[restart,setRestart]=useState(false),[cut,setCut]=useState(false),[target,setTarget]=useState('stem'),[at,setAt]=useState(.025)
   const world=useRef<CoreWorld|null>(null),capture=useRef<(wish?:string)=>void>(()=>{}),context=useRef<HTMLDivElement>(null)
   const selected=g.history.present.flowers.find(f=>f.id===g.selectedId&&(f.location!=='vase'||canArrange(g.ritual))),inserted=selected?.location==='vase'
@@ -51,7 +51,7 @@ export default function CorePrototype(){
     finally{if(request===loadId.current)setSwitching(false)}
   }
   const load=useCallback(()=>{const id=++loadId.current;setError('');void loadSceneAssets(sceneId).then(next=>{if(id===loadId.current)setAssets(next)}).catch(()=>{if(id===loadId.current)setError('场景未能载入，作品仍被保留。')})},[sceneId])
-  useEffect(load,[load])
+  useEffect(()=>{if(assets?.sceneId!==sceneId)load()},[assets?.sceneId,sceneId,load])
   const onReady=useCallback(()=>setReady(true),[]),onWorld=useCallback((value:CoreWorld)=>{world.current=value},[]),onExport=useCallback((fn:(wish?:string)=>void)=>{capture.current=fn},[])
   const cancel=()=>{g.previewInsert(null);if(useCoreStore.getState().pourPhase==='flow')world.current?.pourAction?.('stop');world.current?.abortRitual?.();world.current?.cancel();setCut(false)}
   const travel=(direction:'undo'|'redo')=>{

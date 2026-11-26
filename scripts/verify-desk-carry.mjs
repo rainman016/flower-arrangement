@@ -14,7 +14,7 @@ try{
   const ctx=await browser.newContext({viewport:{width:1000,height:590},recordVideo:{dir:tmpdir(),size:{width:1000,height:590}}}),page=await ctx.newPage()
   const errors=[];page.on('pageerror',e=>errors.push(e.message))
   await page.addInitScript(()=>{window.flowerCoreReview=true})
-  await page.goto(url.href);await page.getByRole('button',{name:'开始插花',exact:true}).click({timeout:60000});await page.getByRole('button',{name:'进入备席'}).click()
+  await page.goto(url.href);await page.getByRole('button',{name:'竹林清风',exact:true}).click();await page.getByRole('button',{name:'开始插花',exact:true}).click({timeout:60000});await page.getByRole('button',{name:'进入备席'}).click()
   await page.waitForTimeout(550)
   const position=id=>page.evaluate(id=>{
     const a=window.__coreInspect,o=a.world.flowers.get(id)||a.world[id]
@@ -160,7 +160,7 @@ try{
   })
   assert.ok(shadowPixels>35,'flower contact shadows darken the desk')
   await page.screenshot({path:resolve(dir,'flowers-on-desk.png')})
-  await page.reload();await page.waitForFunction(()=>!!window.__coreInspect,null,{timeout:45000});await page.waitForTimeout(450)
+  await page.reload();await page.getByRole('button',{name:'继续上次花席',exact:true}).click();await page.waitForFunction(()=>!!window.__coreInspect,null,{timeout:45000});await page.waitForTimeout(450)
   checkRest(await contact())
   assert.deepEqual(errors,[])
   const video=page.video();await ctx.close();await video.saveAs(resolve(dir,'pick-up-and-place.webm'));await video.delete()
