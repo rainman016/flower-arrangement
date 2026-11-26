@@ -1,0 +1,167 @@
+{
+  "version": 2,
+  "units": "meters",
+  "upAxis": "Y",
+  "limits": {
+    "mouthHeight": 0.179,
+    "mouthRadius": 0.017,
+    "maxOffset": 0.007,
+    "maxTilt": 12,
+    "minDepth": 0.055,
+    "maxDepth": 0.145,
+    "initialDepth": 0.1
+  },
+  "assets": [
+    {
+      "id": "prop-kit",
+      "file": "assets/models/prop-kit-garden-v9.glb",
+      "rootNode": "tray_root",
+      "requiredNodes": [
+        "wood_table_root",
+        "vase_root",
+        "glass_root",
+        "scissors_root",
+        "flower_yellow_head",
+        "flower_white_head",
+        "flower_grass_head",
+        "flower_leaf",
+        "flower_grass_leaf",
+        "vase_mouth",
+        "vase_grip",
+        "glass_grip",
+        "glass_pour_lip",
+        "scissors_hinge",
+        "scissors_grip",
+        "scissors_cut",
+        "scissors_half_0",
+        "scissors_half_1"
+      ],
+      "source": "THIRD_PARTY_NOTICES.md",
+      "provenance": "Measured workbench, individually cut timber UVs, thrown ceramic, separate rounded ray florets, wildflower spray and awned seed head.",
+      "license": "Project original; brown_planks_03 by Poly Haven, CC0"
+    },
+    {
+      "id": "environment-bamboo",
+      "file": "assets/environments/bamboo-garden-v17.glb",
+      "source": "THIRD_PARTY_NOTICES.md",
+      "provenance": "Foreground bamboo transplanted with attached branches and understory to the right bank. Retains v15 folded leaf geometry and CC0 scanned surfaces.",
+      "license": "Project original geometry with CC0 scans from Poly Haven and ambientCG",
+      "rootNode": "environment_bamboo",
+      "requiredNodes": [
+        "terrain",
+        "bank_grass",
+        "seat_eye",
+        "work_surface",
+        "wind_direction",
+        "grove_0_culm",
+        "grove_0_leaves",
+        "grove_1_twigs",
+        "bryophyte_0_leaves",
+        "reference_litter",
+        "bank_moss",
+        "ground_herb_0_leaves",
+        "ground_herb_1_leaves"
+      ]
+    },
+    {
+      "id": "preview-bamboo",
+      "file": "assets/previews/bamboo-d0f0441ff836.jpg",
+      "source": "THIRD_PARTY_NOTICES.md",
+      "provenance": "Seated player camera in offline build 24bc5893c496fc1a693ddb4a8a4a1c9388e6a495b74ce82219620f82428ec9a9",
+      "license": "Project generated"
+    },
+    {
+      "id": "environment-creek",
+      "file": "assets/environments/creek-garden-v10.glb",
+      "source": "THIRD_PARTY_NOTICES.md",
+      "provenance": "Authored terrain with wetness and moss cover, low scanned moss shoots, composed woodland opening and real stream or shelter where applicable.",
+      "license": "Project original geometry with CC0 scans from Poly Haven and ambientCG",
+      "rootNode": "environment_creek",
+      "requiredNodes": [
+        "terrain",
+        "bank_grass",
+        "seat_eye",
+        "work_surface",
+        "creek_surface",
+        "water_level",
+        "wind_direction",
+        "bryophyte_0_leaves",
+        "reference_litter",
+        "bank_moss",
+        "ground_herb_0_leaves",
+        "ground_herb_1_leaves"
+      ]
+    },
+    {
+      "id": "preview-creek",
+      "file": "assets/previews/creek-7d8c0b51becc.jpg",
+      "source": "THIRD_PARTY_NOTICES.md",
+      "provenance": "Seated player camera in offline build d9c6591a0ade8aade38dff9f2a179ec9a45abea94ac28495cee79d0f47ad7f20",
+      "license": "Project generated"
+    },
+    {
+      "id": "audio-nature-bamboo",
+      "file": "assets/audio/nature-bamboo.ogg",
+      "source": "https://freesound.org/people/teadrinker/sounds/403051/",
+      "provenance": "Field recording; excerpt, high-pass, level normalization and crossfaded loop",
+      "license": "CC0 1.0"
+    },
+    {
+      "id": "audio-nature-creek",
+      "file": "assets/audio/nature-creek.ogg",
+      "source": "https://freesound.org/people/InspectorJ/sounds/325324/",
+      "provenance": "Field recording; excerpt, high-pass, level normalization and crossfaded loop",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": "nature-kit",
+      "file": "assets/models/nature-kit-v9.glb",
+      "rootNode": "forest_tree_0",
+      "requiredNodes": [
+        "forest_fern_0",
+        "forest_rock_0",
+        "forest_ground_material",
+        "forest_ledge_0",
+        "forest_rootwood_0"
+      ],
+      "source": "THIRD_PARTY_NOTICES.md",
+      "provenance": "Shared scanned tree, fern and root buttress, procedural ledges carrying scanned mossy rock, retained mesh silhouettes and wind weights.",
+      "license": "Poly Haven CC0 and project original meshes"
+    },
+    {
+      "id": "woodland-light",
+      "file": "assets/surfaces/forest-light-v8.hdr",
+      "source": "https://polyhaven.com/a/forest_slope",
+      "license": "CC0 1.0"
+    },
+    {
+      "id": "leaf-litter",
+      "file": "assets/surfaces/forest-floor-v8.jpg",
+      "source": "https://polyhaven.com/a/forest_floor",
+      "license": "CC0 1.0"
+    },
+    {
+      "id": "creek-alluvium",
+      "file": "assets/surfaces/creek-alluvium.jpg",
+      "source": "THIRD_PARTY_NOTICES.md",
+      "license": "CC0 1.0 (Poly Haven)",
+      "provenance": "Sandy Gravel 02 and Forest Floor. Padded atlas of scanned diffuse colour, tangent normal XY and roughness."
+    },
+    {
+      "id": "distance-creek",
+      "file": "assets/woodland-distance/creek-32c019404bf1.bin",
+      "distanceFor": "assets/environments/creek-garden-v10.glb",
+      "source": "THIRD_PARTY_NOTICES.md",
+      "provenance": "Six views of the authored 3D forest with measured depths from the seated player eye.",
+      "license": "Project generated from the licensed source geometry"
+    },
+    {
+      "id": "distance-bamboo",
+      "file": "assets/woodland-distance/bamboo-cf05e08d40b2.bin",
+      "distanceFor": "assets/environments/bamboo-garden-v17.glb",
+      "source": "THIRD_PARTY_NOTICES.md",
+      "provenance": "Six views of the authored 3D forest with measured depths from the seated player eye.",
+      "license": "Project generated from the licensed source geometry"
+    }
+  ]
+}
