@@ -1,19 +1,11 @@
 import {createHash} from 'node:crypto'
-import {execFileSync} from 'node:child_process'
+import {compactCaptureImage} from './pack-woodland-images.mjs'
 import {chromium} from '@playwright/test'
 import {build} from 'vite'
 import {readFile,writeFile,mkdir} from 'node:fs/promises'
 import {relative,resolve,sep} from 'node:path'
 import {pathToFileURL} from 'node:url'
-// The depth pass writes two centimetre channels and an opaque alpha. Repack
-// its RGB losslessly offline so more of the delivery budget can store leaf edges.
-function compactDepth(encoded){
-  const original=Buffer.from(encoded,'base64')
-  const compact=execFileSync('ffmpeg',['-v','error','-i','pipe:0','-frames:v','1',
-    '-pix_fmt','rgb24','-c:v','png','-pred','mixed','-compression_level','9','-f','image2pipe','pipe:1'],
-    {input:original,maxBuffer:32*1024*1024,windowsHide:true})
-  return compact.length<original.length?compact:original
-}
+const compactDepth=encoded=>compactCaptureImage(Buffer.from(encoded,'base64'))
 const dir=resolve(process.argv[2]||'art/deliverables/click-cut-final')
 const sha=JSON.parse(await readFile(resolve(dir,'build.json'),'utf8')).sha256
 const out=resolve('public/assets/woodland-distance');await mkdir(out,{recursive:true})
@@ -51,7 +43,7 @@ try{
   if(shaderErrors.size)throw new Error('远景渲染失败 '+id+' '+[...shaderErrors].join('\n'))
   const origin=Buffer.alloc(12)
   data.origin.forEach((v,i)=>origin.writeFloatLE(v,i*4))
-  const chunks=[Buffer.from('WDS3'),Buffer.from([data.grid,6,0,0]),origin]
+  const chunks=[Buffer.from('WDS4'),Buffer.from([data.grid,6,0,0]),origin]
   for(const f of data.faces){
    const pic=Buffer.from(f.color,'base64'),depth=Buffer.from(f.depth,'base64'),size=Buffer.alloc(4)
    const occlusion=compactDepth(f.occlusion),length=Buffer.alloc(4)
@@ -62,7 +54,7 @@ try{
   const file=Buffer.concat(chunks),fileHash=createHash('sha256').update(file).digest('hex')
   const filename=id+'-'+fileHash.slice(0,12)+'.bin'
   await writeFile(resolve(out,filename),file)
-  await writeFile(resolve(dir,id+'-bake.json'),JSON.stringify({sourceHtml:sha,format:'WDS3',file:filename,sha256:fileHash,bytes:file.length,origin:data.origin,grid:data.grid},null,2)+'\n')
+  await writeFile(resolve(dir,id+'-bake.json'),JSON.stringify({sourceHtml:sha,format:'WDS4',file:filename,sha256:fileHash,bytes:file.length,origin:data.origin,grid:data.grid},null,2)+'\n')
   if(process.argv.includes('--register')){
     const path=resolve(process.env.FLOWER_ASSET_MANIFEST||'public/assets/manifest.json')
     const manifest=JSON.parse(await readFile(path,'utf8'))

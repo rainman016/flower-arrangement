@@ -1,10 +1,16 @@
-import { Vector2, Vector3, BufferAttribute, BufferGeometry, DoubleSide, MeshBasicMaterial, NearestFilter, OrthographicCamera, PlaneGeometry, Group, Mesh, ShaderMaterial, SRGBColorSpace, TextureLoader } from 'three'
+import { Vector2, Vector3, BufferAttribute, BufferGeometry, CustomBlending, OneFactor, ZeroFactor, SrcAlphaFactor, OneMinusSrcAlphaFactor, DoubleSide, MeshBasicMaterial, NearestFilter, OrthographicCamera, PlaneGeometry, Group, Mesh, ShaderMaterial, SRGBColorSpace, TextureLoader } from 'three'
 
 import { captureFaces, distanceShell } from './distance-shell'
 
 async function loadFaceTexture(blob:Blob){
   const url=URL.createObjectURL(blob)
   return new TextureLoader().loadAsync(url).finally(()=>URL.revokeObjectURL(url))
+}
+
+function measuredImage(data:ArrayBuffer,start:number,end:number){
+  const header=new DataView(data,start,end-start)
+  const webp=end-start>=12&&header.getUint32(0)===0x52494646&&header.getUint32(8)===0x57454250
+  return new Blob([data.slice(start,end)],{type:webp?'image/webp':'image/png'})
 }
 
 // Preserve the original WDS1 projection for scenery shipped without the
@@ -43,7 +49,7 @@ export async function loadDistanceSurface(url:string){
   const response=await fetch(url)
   if(!response.ok)throw Error('远景读取失败')
   const data=await response.arrayBuffer(),bytes=new DataView(data)
-  const format=bytes.getUint32(0),seated=format===0x57445333,precise=seated||format===0x57445332
+  const format=bytes.getUint32(0),seated=format===0x57445333||format===0x57445334,precise=seated||format===0x57445332
   if((format!==0x57445331&&!precise)||bytes.getUint8(5)!==6)throw Error('远景格式无效')
   const grid=bytes.getUint8(4),w=grid+1,count=w*w
   if(grid<2)throw Error('远景尺寸无效')
@@ -62,7 +68,7 @@ export async function loadDistanceSurface(url:string){
     if(precise){
       const size=bytes.getUint32(offset,true);offset+=4
       if(!size||offset+size>data.byteLength)throw Error('远景遮挡数据不完整')
-      occlusion=new Blob([data.slice(offset,offset+size)],{type:'image/png'});offset+=size
+      occlusion=measuredImage(data,offset,offset+size);offset+=size
     }
     faces.push({colour,depth,occlusion})
   }
@@ -78,6 +84,10 @@ export async function loadDistanceSurface(url:string){
     geometry.setAttribute('captureUv',new BufferAttribute(captureUv,3))
     geometry.setIndex(indices)
     const material=new ShaderMaterial({defines:metres?{CAPTURE_DEPTH:1}:{},uniforms:{captureOrigin:{value:origin},image:{value:texture},depthMap:{value:metres},depthTexel:{value:new Vector2(1/(metres?.image.width??1),1/(metres?.image.height??1))}},side:DoubleSide,toneMapped:false,alphaToCoverage:true,
+      // Coverage chooses the MSAA colour samples. Keep the already rendered
+      // background alpha: writing fractional alpha a second time made browser
+      // compositing unpremultiply leaf edges into pale/white outlines.
+      blending:CustomBlending,blendSrc:OneFactor,blendDst:ZeroFactor,blendSrcAlpha:ZeroFactor,blendDstAlpha:OneFactor,
       vertexShader:`attribute vec3 captureUv;uniform vec3 captureOrigin;
         varying vec3 fromCapture;varying vec4 depthProjection;
         void main(){
@@ -114,11 +124,19 @@ export async function loadDistanceSurface(url:string){
           gl_FragColor=colour;
           #include <colorspace_fragment>
         }`})
-    const mesh=new Mesh(geometry,material);mesh.raycast=()=>{};return mesh
+    const mesh=new Mesh(geometry,material);mesh.raycast=()=>{}
+    mesh.onBeforeRender=renderer=>{
+      // Glass/reflection targets usually have no MSAA. Use colour blending for
+      // their edge coverage; the main antialiased framebuffer uses sample masks.
+      const target=renderer.getRenderTarget(),coverage=!target||target.samples>0
+      material.blendSrc=coverage?OneFactor:SrcAlphaFactor
+      material.blendDst=coverage?ZeroFactor:OneMinusSrcAlphaFactor
+    }
+    return mesh
   }))
   for(const mesh of sideMeshes)if(mesh)group.add(mesh)
   if(offset<data.byteLength){
-    const image=URL.createObjectURL(new Blob([data.slice(offset)],{type:'image/png'}))
+    const image=URL.createObjectURL(measuredImage(data,offset,data.byteLength))
     const depth=await new TextureLoader().loadAsync(image).finally(()=>URL.revokeObjectURL(image))
     depth.minFilter=depth.magFilter=NearestFilter;depth.generateMipmaps=false
     const geometry=new PlaneGeometry(2,2);geometry.setDrawRange(0,0)

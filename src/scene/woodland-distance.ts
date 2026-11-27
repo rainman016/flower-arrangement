@@ -22,7 +22,7 @@ export function selectWoodlandDistance(root:Object3D,far:boolean,layeredBamboo=f
         const source=mesh.geometry,index=source.index,position=source.attributes.position
         // A dry leaf can sit only millimetres above the path. Keep that contact in
         // the same depth buffer as the soil rather than rounding it to centimetres.
-        const radius=mesh.name==='root_pocket_litter'?8:mesh.name.includes('twigs')?4.2:3.2
+        const radius=mesh.name==='root_pocket_litter'?8:layeredBamboo?6:mesh.name.includes('twigs')?4.2:3.2
         const length=index?.count??position.count,indices:number[]=[]
         // These batches are merged in world space. Classify their actual triangles,
         // not the batch origin; its location says nothing about the far edge.
@@ -42,7 +42,7 @@ export function selectWoodlandDistance(root:Object3D,far:boolean,layeredBamboo=f
       // Mid-distance and ground-level coppice batches have distinct geometry from
       // the nearest moving sprays. The rock and surface texture come from the same source.
       const crown=/^bamboo_side_crown_[12]_leaves$/.test(o.name)
-      const remoteRock=o.name.startsWith('mossy_bank_stone_')&&Math.hypot(o.matrixWorld.elements[12],o.matrixWorld.elements[14])>5.5
+      const remoteRock=o.name.startsWith('mossy_bank_stone_')&&Math.hypot(o.matrixWorld.elements[12],o.matrixWorld.elements[14])>(layeredBamboo?12:5.5)
       if((crown||remoteRock)!==far)o.visible=false
       return
     }
@@ -50,7 +50,7 @@ export function selectWoodlandDistance(root:Object3D,far:boolean,layeredBamboo=f
       if(far)o.visible=false
       return
     }
-    const radius=/rock|ledge/.test(o.name)?4.5:2.75
+    const radius=layeredBamboo?(/rock|ledge/.test(o.name)?12:/grove_/.test(o.name)?5.2:4.2):/rock|ledge/.test(o.name)?4.5:2.75
     let used=0
     for(let i=0;i<tree.count;i++){
       tree.getMatrixAt(i,m);p.setFromMatrixPosition(m).applyMatrix4(tree.matrixWorld)
