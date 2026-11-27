@@ -333,7 +333,7 @@
 .specimen-groups{display:flex;flex-wrap:wrap;gap:5px}.specimen-groups button{padding:6px 11px;border:1px solid #a0ad99;border-radius:16px;color:#384a38}.specimen-groups [aria-pressed=true]{background:#375440;color:#fff}
 .seat-selection{position:absolute;inset:0;display:grid;place-items:center;background:#15291ed1;color:#fff9e9;text-align:center;padding:18px;z-index:4}
 .seat-selection>div{display:grid;justify-items:center;gap:14px}.seat-selection h1{font:500 clamp(26px,4vw,44px)/1.2 var(--display);margin:0}.seat-selection p{margin:0}.seat-selection button{min-height:44px;padding-inline:20px}
-main.ritual-studio .ritual-heading .ritual-actions>button.finish-arrangement{align-self:flex-start;width:auto;min-width:76px;max-width:100%;min-height:44px;font-size:14px;background:#efede1;color:#304a3c;order:8;margin-top:9px}
+main.ritual-studio .ritual-heading .ritual-actions>button.finish-arrangement{align-self:flex-start;justify-self:start;width:5rem;min-width:76px;max-width:100%;min-height:44px;font-size:14px;background:#efede1;color:#304a3c;order:8;margin-top:9px}
 .ritual-studio .cup-pour-actions,.ritual-studio[data-pour=paused] .cup-pour-actions{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:5px;width:max-content;max-width:calc(100% - 16px);padding:7px 10px;background:#f5f1e6f5;border:1px solid #9da899;border-radius:9px;text-align:center;color:#284638}
 .pour-reading{width:100%;display:grid;font-size:13px;line-height:1.4}.pour-reading output{font-weight:600;font-variant-numeric:tabular-nums}
 .ritual-studio:is([data-pour=ready],[data-pour=flow],[data-pour=paused]) .ritual-heading{visibility:hidden}

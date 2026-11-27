@@ -489,7 +489,7 @@ try{
       await page.screenshot({path:resolve(dir,'vase-adjust.png')});await button('回到桌前')
       const finish=await page.getByRole('button',{name:'插好了',exact:true}).boundingBox()
       const rail=await page.locator('.step-card').boundingBox()
-      verify('整席收尾按钮缩窄，保留可点高度',finish.width<rail.width*.8&&finish.height>=44)
+      verify('整席收尾按钮缩窄，保留可点高度 '+Math.round(finish.width)+'×'+Math.round(finish.height),finish.width<rail.width*.8&&finish.height>=44)
     }
     await button('插好了')
     if(id==='bamboo'){
