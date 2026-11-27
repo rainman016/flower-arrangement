@@ -53,7 +53,8 @@ try{
   const hotspots=[...times].sort((a,b)=>b[1]-a[1]).slice(0,28).map(([id,ms])=>({ms:Math.round(ms),...nodes.get(id).callFrame}))
   await writeFile(resolve(out,sceneId+'.cpuprofile'),JSON.stringify(profile))
   await page.getByRole('button',{name:'开始插花',exact:true}).click()
-  await page.getByRole('button',{name:'进入备席',exact:true}).click()
+  await page.getByRole('button',{name:'准备花材',exact:true}).click()
+  await page.getByRole('button',{name:'用这些花材开始备席',exact:true}).click()
   await page.locator('main[data-stage="prepare"]').waitFor()
   const capture=await page.evaluate(async()=>{
     const {renderer,scene,camera}=window.__coreInspect,env=scene.getObjectByName('nature_environment')

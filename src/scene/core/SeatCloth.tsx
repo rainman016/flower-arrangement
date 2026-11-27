@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react'
 import { BufferGeometry, CanvasTexture, Float32BufferAttribute, RepeatWrapping, SRGBColorSpace } from 'three'
 import { DESK, WOOD_FRONT } from '../../game/desk-layout'
 
-const back = .135, woodFront = WOOD_FRONT, top = DESK.top + .00035
+const back = .135, woodFront = WOOD_FRONT, top = DESK.top
 
 function wovenSurface() {
   const canvas = document.createElement('canvas')
@@ -53,6 +53,6 @@ export function SeatCloth() {
   useEffect(()=>()=>{weave.dispose();cloth.dispose()},[weave,cloth])
   return <group name="linen-seat">
     <mesh position={[0,DESK.top-.0125,(woodFront+DESK.front)/2]} receiveShadow><boxGeometry args={[1.197,.024,DESK.front-woodFront]}/><meshStandardMaterial color="#73604c" roughness={.92}/></mesh>
-    <mesh name="woven-linen" geometry={cloth} receiveShadow castShadow><meshStandardMaterial map={weave} vertexColors roughness={.97}/></mesh>
+    <mesh name="woven-linen" geometry={cloth} receiveShadow castShadow><meshStandardMaterial polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-4} map={weave} vertexColors roughness={.97}/></mesh>
   </group>
 }

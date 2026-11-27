@@ -487,6 +487,9 @@ try{
       verify('拖空处环看花瓶',await page.evaluate(p=>window.__coreInspect.camera.position.distanceTo(new window.__coreInspect.Vector3(...p))>.01,viewBefore))
       verify('调花时隐藏整席收尾按钮',await page.getByRole('button',{name:'插好了',exact:true}).count()===0)
       await page.screenshot({path:resolve(dir,'vase-adjust.png')});await button('回到桌前')
+      const finish=await page.getByRole('button',{name:'插好了',exact:true}).boundingBox()
+      const rail=await page.locator('.step-card').boundingBox()
+      verify('整席收尾按钮缩窄，保留可点高度',finish.width<rail.width*.8&&finish.height>=44)
     }
     await button('插好了')
     if(id==='bamboo'){

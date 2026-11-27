@@ -1,5 +1,5 @@
 import {Euler,Matrix4,PerspectiveCamera,Raycaster,Vector2,Vector3,Vector4} from 'three'
-import {deskView} from './core/desk-space'
+import {woodlandReferenceView} from './core/desk-space'
 import type {HeightAt} from './terrain-height'
 
 export type BambooSunlight=ReturnType<typeof bambooSunlight>
@@ -8,7 +8,7 @@ const trailTargets=[[.447,.285,.46,.15],[.345,.346,.74,.14],[.438,.406,.77,.13]]
 const rimTargets=[[.115,.068,-14,1.05,2.0],[.200,.145,-9.0,.66,1.10]] as const
 
 export function bambooWindowLayout(){
-  const view=deskView(1536,1024),camera=new PerspectiveCamera(view.fov,1.5,.01,80),ray=new Raycaster()
+  const view=woodlandReferenceView(),camera=new PerspectiveCamera(view.fov,1.5,.01,80),ray=new Raycaster()
   camera.position.copy(view.eye);camera.quaternion.setFromEuler(new Euler(view.pitch,0,0));camera.updateMatrixWorld(true)
   ray.setFromCamera(new Vector2(.080*2-1,1-.058*2),camera)
   const center=ray.ray.at((-18-ray.ray.origin.z)/ray.ray.direction.z,new Vector3())
@@ -28,7 +28,7 @@ export function bambooWindowOpticalDepth(eye:Vector3,surface:Vector3){
 // Authoring uses the agreed seated camera once; these positions remain in world
 // space during play, capture and look-around. No screen-space light overlay.
 export function bambooSunlight(ground:HeightAt){
-  const view=deskView(1536,1024),camera=new PerspectiveCamera(view.fov,1.5,.01,80)
+  const view=woodlandReferenceView(),camera=new PerspectiveCamera(view.fov,1.5,.01,80)
   camera.position.copy(view.eye);camera.quaternion.setFromEuler(new Euler(view.pitch,0,0));camera.updateMatrixWorld(true)
   const ray=new Raycaster(),uv=new Vector2(),point=new Vector3()
   const project=(p:Vector3)=>new Vector2(p.x+p.y*slope.x,p.z+p.y*slope.y)

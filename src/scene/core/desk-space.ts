@@ -5,17 +5,19 @@ import type { Arrangement, Vec3 } from '../../game/types'
 const X=new Vector3(1,0,0),Y=new Vector3(0,1,0)
 // Leave the front edge of the desk in frame so a severed side shoot can be seen landing.
 export const cuttingEye=new Vector3(0,1.065,.68)
-export function deskView(width:number,height:number){
+export function deskView(width:number,height:number,front=DESK.front){
   const aspect=width/Math.max(1,height),fov=aspect<.85?60:47,pitch=-23*Math.PI/180
   const target=new Vector3(0,.96,-.065),back=new Vector3(0,-Math.sin(pitch),Math.cos(pitch))
   const tangent=Math.tan(fov*Math.PI/360)
   let distance=1.04
-  for(const z of [WOOD_FRONT,DESK.back]){
+  for(const z of [front,DESK.back]){
     const offset=new Vector3(.6,DESK.top,z).sub(target).applyAxisAngle(X,-pitch)
     distance=Math.max(distance,offset.z+Math.abs(offset.x)/(.93*aspect*tangent),offset.z+Math.abs(offset.y)/(.87*tangent))
   }
   return {eye:target.addScaledVector(back,distance),pitch,fov}
 }
+// The baked woodland geometry uses its original 1536 × 1024 reference camera.
+export const woodlandReferenceView=()=>deskView(1536,1024,WOOD_FRONT)
 export function propRotation(s:Arrangement,prop:'vase'|'scissors'|'cup'){
   const q=s.tools?.rotations?.[prop]
   return q?new Quaternion(...q):new Quaternion().setFromAxisAngle(Y,prop==='vase'?-s.vase.yaw*Math.PI/180:0)

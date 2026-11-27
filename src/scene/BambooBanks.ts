@@ -1,5 +1,5 @@
 import {BufferGeometry,Color,DoubleSide,Euler,Float32BufferAttribute,Matrix4,Mesh,MeshStandardMaterial,Object3D,PerspectiveCamera,Ray,Raycaster,Vector2,Vector3} from 'three'
-import {deskView} from './core/desk-space'
+import {woodlandReferenceView} from './core/desk-space'
 import {DESK} from '../game/desk-layout'
 import type {HeightAt} from './terrain-height'
 import {bambooTurn} from './BambooTurn'
@@ -26,7 +26,7 @@ export function bambooBanks(root:Object3D,ground:HeightAt){
   const surfaces=['terrain','root_bank_soil'].map(name=>root.getObjectByName(name)).filter((o):o is Mesh=>o instanceof Mesh)
   const obstacles:Mesh[]=[]
   root.traverse(o=>{if(o instanceof Mesh&&(o.userData.exposedShoulder||o.userData.outcropFoot))obstacles.push(o)})
-  const view=deskView(1536,1024),camera=new PerspectiveCamera(view.fov,1.5,.01,80)
+  const view=woodlandReferenceView(),camera=new PerspectiveCamera(view.fov,1.5,.01,80)
   camera.position.copy(view.eye);camera.quaternion.setFromEuler(new Euler(view.pitch,0,0));camera.updateMatrixWorld(true)
   const projection=new Matrix4().multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse)
   const ray=new Raycaster(),point=new Vector3(),uv=new Vector2()

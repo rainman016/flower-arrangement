@@ -1,5 +1,5 @@
 import {BufferGeometry,Color,DoubleSide,Euler,Float32BufferAttribute,Matrix4,Mesh,MeshStandardMaterial,Object3D,PerspectiveCamera,Raycaster,Vector2,Vector3} from 'three'
-import {deskView} from './core/desk-space'
+import {woodlandReferenceView} from './core/desk-space'
 
 type Batch={p:number[];c:number[];uv:number[];bend:number[];phase:number[];tissue:number[];ix:number[]}
 const batch=():Batch=>({p:[],c:[],uv:[],bend:[],phase:[],tissue:[],ix:[]})
@@ -10,7 +10,7 @@ export function bambooBacklitLeaves(root:Object3D){
   const blades=batch(),twigs=batch(),up=new Vector3(0,1,0),scratch=new Vector3()
   const markers:Object3D[]=[]
   root.traverse(o=>{if(String(o.userData.prototype??'').startsWith('grove_')&&o.scale.y>.48)markers.push(o)})
-  const view=deskView(1536,1024),camera=new PerspectiveCamera(view.fov,1.5,.01,80),ray=new Raycaster(),uv=new Vector2()
+  const view=woodlandReferenceView(),camera=new PerspectiveCamera(view.fov,1.5,.01,80),ray=new Raycaster(),uv=new Vector2()
   camera.position.copy(view.eye);camera.quaternion.setFromEuler(new Euler(view.pitch,0,0));camera.updateMatrixWorld(true)
   const palette=[0x758b33,0x87993d,0x657e2e,0x9b9e42,0x70883a].map(c=>new Color(c)),bark=new Color(0x64743b)
   let seed=188723,leafCount=0

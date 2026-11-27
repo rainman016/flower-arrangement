@@ -32,7 +32,13 @@ try{
   })
   console.log('crowns',crowns)
   assert.ok(crowns[1].height-crowns[0].height>.024&&crowns[2].height-crowns[1].height>.045,'three height tiers')
-  const spots=[['vase',432,322],['cup',500,332],['scissors',566,343],...crowns.map(c=>[c.id,c.x,c.y])]
+  const tools=[]
+  for(const id of ['vase','cup','scissors']){
+    const grip=await visibleDeskPoint(page,id)
+    assert.ok(grip,'visible '+id)
+    tools.push([id,grip.x,grip.y])
+  }
+  const spots=[...tools,...crowns.map(c=>[c.id,c.x,c.y])]
   for(const [id,x,y] of spots){
     const before=await position(id)
     const field=await deskMouseTargets(page,id,{x,y},[[.19,.11],[-.22,-.15],[-.34,.18]])
@@ -52,7 +58,7 @@ try{
     for(const [i,[x,z]] of [[.19,.11],[-.22,-.15],[-.34,.18]].entries())
       assert.ok(Math.hypot(moved[i].x-x,moved[i].z-z)<.01,'reached physical target '+i+' '+id+' '+JSON.stringify(moved[i]))
     const excursion=Math.max(...moved.map(p=>Math.abs(p.y-picked.y)))
-    assert.ok(moved.every(p=>p.active===id&&Math.abs(p.x)<=.601&&p.z>=-.501&&p.z<=.371)&&excursion<.0001,'fixed carry height and desk bounds '+id+' '+JSON.stringify({picked,moved,excursion}))
+    assert.ok(moved.every(p=>p.active===id&&Math.abs(p.x)<=.601&&p.z>=-.501&&p.z<=.491)&&excursion<.0001,'fixed carry height and desk bounds '+id+' '+JSON.stringify({picked,moved,excursion}))
     assert.ok(moved[0].x-moved[1].x>.13&&moved[0].z-moved[1].z>.13&&moved[2].z>moved[1].z+.18,'mouse can move left/right and front/back '+id)
     assert.ok(Math.hypot(moved[4].x-moved[0].x,moved[4].z-moved[0].z)<.002,'return to same tabletop point '+id)
     if(id==='vase')await page.screenshot({path:resolve(dir,'vase-lifted.png')})
