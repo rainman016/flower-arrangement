@@ -29,8 +29,15 @@ try {
   assert.deepEqual(await flowers(),selection)
   await page.reload();await button('继续上次花席').click();await ready()
   assert.deepEqual(await flowers(),selection)
-  const clay=[]
-  for(const [id,x,z] of [['vase',-.15,.43],['scissors',.22,.43],['f-1',-.36,.42]]){
+  const mat=await page.evaluate(()=>{
+    const a=window.__coreInspect, mesh=a.world.table.getObjectByName('seat-mat')
+    const b=new a.Box3().setFromObject(mesh)
+    return {left:b.min.x,right:b.max.x,back:b.min.z,front:b.max.z}
+  })
+  assert.ok(mat.left>-.41 && mat.right<.41 && mat.front<.48 && mat.back>.13)
+  await page.screenshot({path:resolve(output,'seat-mat.png')})
+  const placements=[]
+  for(const [id,x,z] of [['vase',-.09,.36],['scissors',.18,.335],['f-1',-.235,.312],['vase',.48,.42]]){
     const grip=await visibleDeskPoint(page,id)
     assert.ok(grip,'visible grip '+id)
     const [target]=await deskMouseTargets(page,id,grip,[[x,z]],id.startsWith('f-'))
@@ -46,13 +53,18 @@ try {
         const points=mesh.geometry.getAttribute('position')
         for(let i=0;i<points.count;i++)bounds.expandByPoint(p.fromBufferAttribute(points,i).applyMatrix4(mesh.matrixWorld))
       })
-      return {z:root.position.z,minZ:bounds.min.z,maxZ:bounds.max.z,base:bounds.min.y}
+      return {minX:bounds.min.x,maxX:bounds.max.x,minZ:bounds.min.z,maxZ:bounds.max.z,base:bounds.min.y}
     },id)
-    assert.ok(position.maxZ>.37&&position.maxZ<.50&&Math.abs(position.base-.758)<.002,id+' rests on the cloth '+JSON.stringify(position))
-    clay.push({id,...position})
+    assert.ok(Math.abs(position.base-.758)<.002,id+' rests on the work surface')
+    const onMat=x<mat.right
+    assert.ok(onMat
+      ? position.minX>=mat.left && position.maxX<=mat.right && position.minZ>=mat.back && position.maxZ<=mat.front
+      : position.minX>mat.right && position.maxZ>.37 && position.maxZ<.49,
+      id+' placed on '+(onMat?'cloth':'wood')+' '+JSON.stringify(position))
+    placements.push({id,onMat,...position})
+    if(placements.length===3)await page.screenshot({path:resolve(output,'cloth-placements.png')})
   }
-  await page.screenshot({path:resolve(output,'cloth-placements.png')})
   assert.deepEqual(errors,[])
-  await writeFile(resolve(output,'seat-materials-check.json'),JSON.stringify({selection:selection.map(f=>f.kind),placements:clay,errors},null,2))
-  console.log('开场新花材、窄屏、锁定/恢复、三件实物落在延伸席布：通过',clay)
+  await writeFile(resolve(output,'seat-materials-check.json'),JSON.stringify({selection:selection.map(f=>f.kind),mat,placements,errors},null,2))
+  console.log('开场新花材、窄屏、锁定/恢复、三件实物放上小席布、花瓶移到旁边木面：通过',placements)
 }finally{await browser.close()}
