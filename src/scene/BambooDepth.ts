@@ -77,14 +77,14 @@ export function bambooMiddleGrove(root:Object3D,ground:HeightAt){
   root.userData.bambooRegrowth=planted
 }
 
-// Keep a sparse understorey at the middle path and all authored culms. Only the
-// bamboo scene uses this budget; no captured surface substitutes for its forest.
+// Keep the live inner woodland in every direction; farther planting is supplied
+// by the matching six-face depth capture, rather than deleting side undergrowth.
 export function keepBambooPlant(kind:string,matrix:Matrix4){
   const x=matrix.elements[12],z=matrix.elements[14],r=Math.hypot(x,z)
   if(kind.startsWith('grove_'))return true
-  if(/rock|ledge|rootwood/.test(kind))return r<10
+  if(/rock|ledge|rootwood/.test(kind))return r<12
   if(kind.startsWith('bryophyte_'))return r<5.5
-  if(r<6.1)return true
+  if(r<7.5)return true
   const pocket=Math.sin(x*14.7+z*31.3)*43758.5453
   const sample=pocket-Math.floor(pocket)
   return z< -4&&z> -23&&Math.abs(x-bambooPathCenter(z))<4.1&&sample<(r<12?.29:.12)

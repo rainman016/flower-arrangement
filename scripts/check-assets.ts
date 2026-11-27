@@ -33,16 +33,18 @@ for(const asset of manifest.assets){
     parsed.scene.traverse(node=>{if(!node.matrixWorld.elements.every(Number.isFinite))throw new Error(asset.id+': invalid transform '+node.name)})
   }else if(asset.file.endsWith('.bin')){
     const format=buffer.toString('ascii',0,4),grid=buffer[4]
-    if(!['WDS1','WDS2','WDS3'].includes(format)||buffer[5]!==6||grid<2)throw Error(asset.id+': invalid distance surface')
-    let offset=format==='WDS3'?20:8
-    if(format==='WDS3'&&![8,12,16].every(i=>Number.isFinite(buffer.readFloatLE(i))))throw Error('Invalid capture eye')
+    if(!['WDS1','WDS2','WDS3','WDS4'].includes(format)||buffer[5]!==6||grid<2)throw Error(asset.id+': invalid distance surface')
+    const seated=format==='WDS3'||format==='WDS4'
+    let offset=seated?20:8
+    if(seated&&![8,12,16].every(i=>Number.isFinite(buffer.readFloatLE(i))))throw Error('Invalid capture eye')
+    const measured=(at:number)=>buffer.toString('ascii',at+1,at+4)==='PNG'||(format==='WDS4'&&buffer.toString('ascii',at,at+4)==='RIFF'&&buffer.toString('ascii',at+8,at+16)==='WEBPVP8L')
     function image(kind:string){
       const size=buffer.readUInt32LE(offset);offset+=4
-      if(size<16||offset+size>buffer.length||buffer.toString('ascii',offset+(kind==='PNG'?1:8),offset+(kind==='PNG'?4:12))!==kind)throw Error(asset.id+': invalid '+kind)
+      if(size<16||offset+size>buffer.length||(kind==='measured'?!measured(offset):buffer.toString('ascii',offset+8,offset+12)!==kind))throw Error(asset.id+': invalid '+kind)
       offset+=size
     }
-    for(let i=0;i<6;i++){image('WEBP');offset+=(grid+1)**2*2;if(format!=='WDS1')image('PNG')}
-    if(offset>buffer.length||(offset<buffer.length&&buffer.toString('ascii',offset+1,offset+4)!=='PNG'))throw Error(asset.id+': invalid shadow map')
+    for(let i=0;i<6;i++){image('WEBP');offset+=(grid+1)**2*2;if(format!=='WDS1')image('measured')}
+    if(offset>buffer.length||(offset<buffer.length&&!measured(offset)))throw Error(asset.id+': invalid shadow map')
   }else if(asset.file.endsWith('.hdr')){
     if(!buffer.subarray(0,100).toString('ascii').includes('FORMAT=32-bit_rle_rgbe'))throw Error('Invalid Radiance lighting map')
   }else if(asset.file.endsWith('.png')){

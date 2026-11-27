@@ -61,7 +61,8 @@ export function capture(){
   for(const f of faces){
     const forward=f[2]===-1
     const bambooFront=forward&&a.read().ritual.sceneId==='bamboo'
-    const colourSize=bambooFront?2048:forward?960:pixels
+    const bamboo=a.read().ritual.sceneId==='bamboo'
+    const colourSize=bambooFront?2048:bamboo?(f[1]===-1?512:f[1]===1?768:1280):forward?960:pixels
     // Matching pixel centres are essential: a coarser nearest-depth image
     // punched square sky holes through the separately filtered leaf silhouettes.
     const depthSize=colourSize

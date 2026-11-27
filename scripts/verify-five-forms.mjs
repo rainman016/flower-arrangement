@@ -248,9 +248,23 @@ try{
       await page.keyboard.press('Control+z')
       const cancelled=await read()
       verify('倒水中撤销只取消这一段',cancelled.cupHeld&&cancelled.history.present.vaseMl===0&&cancelled.history.past.length===historyBefore)
+      // Undo exits the close pouring view. Projecting the bottle while that
+      // camera is retreating makes the following real mouse click hit the desk.
+      await page.evaluate(()=>new Promise((resolve,reject)=>{
+        const camera=window.__coreInspect.camera,position=camera.position.clone(),rotation=camera.quaternion.clone()
+        const deadline=performance.now()+5000;let stable=0
+        function sample(){
+          const still=position.distanceToSquared(camera.position)<1e-10&&rotation.angleTo(camera.quaternion)<1e-5
+          stable=still?stable+1:0;position.copy(camera.position);rotation.copy(camera.quaternion)
+          if(stable>=3)resolve(true)
+          else if(performance.now()>deadline)reject(Error('Pour camera did not settle after undo'))
+          else requestAnimationFrame(sample)
+        }
+        requestAnimationFrame(sample)
+      }))
       await click(pos('vase',[0,.09,0]))
       await wait(350)
-      verify('点瓶只对准，等待明确开始',(await read()).history.present.vaseMl===0&&!await page.evaluate(()=>window.__coreInspect.world.pouring))
+      verify('点瓶只对准，等待明确开始',(await read()).cupHeld&&(await read()).history.present.vaseMl===0&&!await page.evaluate(()=>window.__coreInspect.world.pouring)&&await pourButton('开始倒水').isVisible())
       await button('开始倒水')
       await page.waitForFunction(()=>window.__coreInspect.world.previewMl>10)
       await click(pos('vase',[0,.09,0]));await wait(200)

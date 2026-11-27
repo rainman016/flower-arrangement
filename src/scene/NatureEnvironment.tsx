@@ -20,6 +20,7 @@ import {woodlandHorizon} from './WoodlandHorizon'
 import {bambooCulmLOD,bambooLeafLOD,bambooMiddleGrove,bambooOuterGround,continueBambooGround,keepBambooPlant} from './BambooDepth'
 import {lowWoodlandQuality} from './render-quality'
 import {bambooCanopy} from './BambooCanopy'
+import {bambooSurround,seatBambooGroves,seatBambooRocks} from './BambooSurround'
 import {bambooBanks} from './BambooBanks'
 import {bambooSunlight,bambooSunSampling,bambooSunResponse,type BambooSunlight} from './BambooSunlight'
 
@@ -343,10 +344,13 @@ export default function NatureEnvironment({model,kit,sceneId,floor,bankAtlas,dis
     }
     const heightAt=shaped?.at??originalGround
     if(openBambooPath&&heightAt)bambooMiddleGrove(root,heightAt)
+    if(openBambooPath&&heightAt)bambooSurround(root,heightAt)
     const releaseBambooOuter=openBambooPath&&heightAt?bambooOuterGround(root,heightAt,floor):null
     const bankMesh=root.getObjectByName('root_bank_soil')
     const bankHeight=bankAtlas&&heightAt&&bankMesh instanceof Mesh?creekBankHeight(bankMesh,heightAt,channel instanceof Mesh?channel:undefined):null
     const grass=composed&&heightAt?detailForestFloor(root,kit.scene,heightAt,sceneId,bankHeight):null
+    if(openBambooPath&&heightAt)seatBambooRocks(root,kit.scene,heightAt)
+    if(openBambooPath&&heightAt)seatBambooGroves(root,heightAt)
     if(sceneId==='creek'&&bankMesh instanceof Mesh&&channel instanceof Mesh)deepenCreekRun(bankMesh,terrain,channel,root)
     const bambooSun=sceneId==='bamboo'&&heightAt?bambooSunlight(heightAt):undefined
     const bambooBank=openBambooPath&&heightAt?bambooBanks(root,heightAt):null
@@ -376,7 +380,7 @@ export default function NatureEnvironment({model,kit,sceneId,floor,bankAtlas,dis
       // glTF may wrap the authored roots in an extra scene node.
       if(!prototypes.length)kit.scene.traverse(o=>{if(new RegExp('^forest_'+kind+'_\\d+$').test(o.name))prototypes.push(o)})
       const locations:Matrix4[]=[]
-      root.traverse(o=>{if(o.userData.prototype===kind)locations.push(o.matrixWorld.clone())})
+      root.traverse(o=>{if(o.userData.prototype===kind&&!o.userData.bambooOmit)locations.push(o.matrixWorld.clone())})
       if(locations.length&&!prototypes.length)throw Error('缺少自然模型 '+kind)
       prototypes.forEach((prototype,variant)=>{
         const instances=locations.filter((matrix,i)=>i%prototypes.length===variant&&
@@ -389,7 +393,7 @@ export default function NatureEnvironment({model,kit,sceneId,floor,bankAtlas,dis
           const patches=new Map<string,Matrix4[]>()
           for(const instance of instances){
             const distance=Math.hypot(instance.elements[12],instance.elements[14])
-            const bambooLOD=openBambooPath&&lowWoodlandQuality&&kind.startsWith('grove_')&&distance>6.8
+            const bambooLOD=openBambooPath&&lowWoodlandQuality&&kind.startsWith('grove_')&&distance>2.8
             if(bambooLOD&&source.name.endsWith('_twigs'))continue
             const distant=bambooLOD||(kind==='tree'&&source.name.endsWith('_leaves')||source.userData.woodlandBlade&&kind.startsWith('grove_'))&&distance>13
             const patchWidth=kind==='tree'?3.6:7

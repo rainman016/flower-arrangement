@@ -157,7 +157,7 @@
     },
     {
       "id": "distance-bamboo",
-      "file": "assets/woodland-distance/bamboo-6d8b68f455fb.bin",
+      "file": "assets/woodland-distance/bamboo-1944d35df014.bin",
       "distanceFor": "assets/environments/bamboo-garden-v17.glb",
       "source": "scripts/capture-woodland-face.ts",
       "provenance": "Six views of the authored 3D forest with measured depths from the seated player eye.",
