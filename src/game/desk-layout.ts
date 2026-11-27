@@ -1,6 +1,7 @@
 import type { Arrangement, Vec3, Quat } from './types'
 
-export const DESK={left:-.6,right:.6,back:-.50,front:.37,top:.758}
+export const WOOD_FRONT=.37
+export const DESK={left:-.6,right:.6,back:-.50,front:.49,top:.758}
 export const BOX={z:-.215,scaleX:.78,scaleZ:.72,halfX:.305*.78,halfZ:.196*.72,base:.774,rim:.809}
 export const CUP_START:Vec3=[0,BOX.base,BOX.z]
 export const SHEARS_START:Vec3=[.143,.783,BOX.z]

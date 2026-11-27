@@ -91,7 +91,7 @@ export function reduceCommand(state: Arrangement, command: Command, context: Con
     }
     case 'set-prop': {
       const [x,y,z]=command.position
-      if(!state.tools||!command.position.every(Number.isFinite)||Math.abs(x)>.6||z<-.51||z>.38||y<.74||y>1.18||(command.rotation&&!validRotation(command.rotation)))return fail('请把器物放在桌面内。')
+      if(!state.tools||!command.position.every(Number.isFinite)||Math.abs(x)>.6||z<-.51||z>TABLE_BOUNDS.front+.015||y<.74||y>1.18||(command.rotation&&!validRotation(command.rotation)))return fail('请把器物放在桌面内。')
       const tools={...state.tools,...(command.prop==='cup'?{}:{placed:{...state.tools.placed,[command.prop]:true as const}}),rotations:{...state.tools.rotations,...(command.rotation?{[command.prop]:command.rotation}:{})}}
       if(command.prop==='vase')return done({...state,vase:{...state.vase,x,z:z+.025},tools:{...tools,vaseY:y}},'花器已放好。')
       return done({...state,tools:{...tools,[command.prop]:[x,y,z]}},command.prop==='cup'?'玻璃杯已放好。':'花剪已放好。')

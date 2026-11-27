@@ -3,7 +3,7 @@ import type { FlowerState, PiecePlacement } from './types'
 
 export const MIN_STEM = .001
 // Measured v8 tabletop, inset by 5 mm; object footprints are checked by the scene.
-export const TABLE_BOUNDS = {left:-.595,right:.595,back:-.495,front:.365}
+export const TABLE_BOUNDS = {left:-.595,right:.595,back:-.495,front:.485}
 export const sectionEnd = (flower:FlowerState,part:string) => flower.sections?.[part] ?? 1
 export function cutProblem(flower:FlowerState,target:string,at:number):string|undefined {
   if(flower.location==='vase')return '先取出花枝，再修剪。'

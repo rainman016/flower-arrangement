@@ -6,6 +6,8 @@ import { stemPoint } from '../objects/BotanicalStem'
 import { prepareSection } from './detail-section'
 import { sliceY } from './clip-geometry'
 import { foxtail, seedPanicle } from './grass-heads'
+import { specimen } from '../../content/specimens'
+import { specimenLeaf, specimenHead } from './specimen-geometry'
 import { wildflowerHead } from './wildflower-head'
 
 const stemMaterial=new MeshStandardMaterial({color:'#566638',roughness:.76})
@@ -28,6 +30,8 @@ function model(kit:Object3D,name:string):Group {
   return bake(object)
 }
 function leaf(kit:Object3D,kind:FlowerState['kind']):Group {
+  const profile=specimen(kind)
+  if(profile)return specimenLeaf(profile)
   const object=model(kit,kind==='grass'?'flower_grass_leaf':'flower_leaf')
   const box=new Box3().setFromObject(object),size=box.getSize(new Vector3())
   // The leaf asset has its petiole at local X/Z zero. Keep that point on the node.
@@ -66,7 +70,8 @@ function bud(point:Vector3,scale:number){
   root.position.copy(point);root.scale.setScalar(scale);return root
 }
 function tip(f:FlowerState,point:Vector3,scale:number,angle:number){
-  const head=wildflowerHead(f.kind==='white'||f.kind==='daisy',f.kind==='daisy')
+  const profile=specimen(f.kind)
+  const head=profile?specimenHead(profile):wildflowerHead(f.kind==='white'||f.kind==='daisy',f.kind==='daisy')
   head.position.copy(point)
   head.scale.setScalar(scale*(f.headScale??1))
   head.rotation.order='YXZ'
@@ -159,7 +164,10 @@ function part(kit:Object3D,f:FlowerState,id:string,from:number,to:number):Group 
       if(at===.66){
         const start=new Vector3(0,at*branchLength,0),end=start.clone().add(new Vector3(-.012,.013,.006))
         const twig=new Group();sprig(twig,start,end,.00050)
-        addDetail(root,f,'side-bud',at,start,[twig,bud(end,.56)])
+        const profile=specimen(f.kind)
+        const young=profile?specimenLeaf(profile):bud(end,.56)
+        if(profile){young.position.copy(end);young.scale.setScalar(.23)}
+        addDetail(root,f,'side-bud',at,start,[twig,young])
       }
     })
     if(to===1){

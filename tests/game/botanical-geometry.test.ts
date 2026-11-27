@@ -4,6 +4,8 @@ import {Box3,Euler,LineLoop,Mesh,PerspectiveCamera,Quaternion,Raycaster,Texture,
 import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js'
 import {flowerOutline,surfaceHeight,restFlower} from '../../src/scene/core/flower-rest'
 import {DESK} from '../../src/game/desk-layout'
+import { SPECIMENS, type SpecimenId } from '../../src/content/specimens'
+import { decodeRitual, encodeRitual, freshRitual } from '../../src/services/ritual-progress'
 import {CUP_FLOWERS,FLOWERS} from '../../src/content/catalog'
 import type {FlowerKind,FlowerState} from '../../src/game/types'
 import {createPiece,createPlant,disposeGeometry} from '../../src/scene/core/botanical-geometry'
@@ -19,6 +21,21 @@ beforeAll(async()=>{
   const bytes=readFileSync('public/'+path)
   const loader=new GLTFLoader().register(()=>({name:'no-image-decode',loadTexture:()=>Promise.resolve(new Texture())}))
   kit=(await loader.parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'')).scene
+})
+it.each(Object.keys(SPECIMENS) as SpecimenId[])('花材 %s 保留真实分枝、远端碎屑与可恢复尺寸',kind=>{
+  const history=ritualHistory()
+  const f={...history.present.flowers[0],kind,length:CUP_FLOWERS[kind].length,headScale:1.15}
+  history.present.flowers=[f]
+  const loaded=decodeRitual(encodeRitual(history,{...freshRitual(),stage:'prepare',seat:{flowers:[f],nextId:history.present.nextId}}))
+  expect(loaded?.ritual.seat?.flowers[0]).toEqual(f)
+  const model=createPlant(kit,f),cut=createPiece(kit,f,'branch-0',.55,1)
+  const clipped=createPlant(kit,{...f,sections:{'branch-0':.55}})
+  const head=model.getObjectByName('flower-crown')!
+  const size=new Box3().setFromObject(head).getSize(new Vector3())
+  expect(Math.min(size.x,size.y,size.z)).toBeGreaterThan(.001)
+  expect(cut.getObjectByName('part-side-bloom')).toBeDefined()
+  expect(clipped.getObjectByName('part-side-bloom')).toBeUndefined()
+  for(const item of [model,cut,clipped])disposeGeometry(item)
 })
 function details(part:Object3D){
   const result:string[]=[]

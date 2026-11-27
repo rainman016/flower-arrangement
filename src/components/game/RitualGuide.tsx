@@ -32,13 +32,16 @@ export default function RitualGuide({ready,onScene,onExport,library,onTidy,trimT
   useEffect(()=>{
     if(!ready||!['opening','return'].includes(stage))return
     const duration=Math.max(5200,(text[line]?.length??0)*275)
-    const timer=setTimeout(()=>line+1<text.length?g.updateRitual({line:line+1}):go(stage==='opening'?'prepare':'done'),duration)
+    const timer=setTimeout(()=>line+1<text.length?g.updateRitual({line:line+1}):go(stage==='opening'?'materials':'done'),duration)
     return()=>clearTimeout(timer)
   },[stage,line,ready])
-  const advance=()=>line+1<text.length?g.updateRitual({line:line+1}):go(stage==='opening'?'prepare':'done')
+  const advance=()=>line+1<text.length?g.updateRitual({line:line+1}):go(stage==='opening'?'materials':'done')
+  if(stage==='materials')return <section className="seat-selection"><div><small>备席之前</small><h1>选这一席花材</h1>
+    <p>可用杯中的花，也可从花材库搭配花、叶与草。</p>{library}
+    <Button disabled={!ready} onClick={()=>go('prepare')}>用这些花材开始备席</Button></div></section>
   if(stage==='arrival')return <section className="ritual-intro"><p>静心插花</p><h1>一席花</h1><div className="ritual-scenes">{SCENES.map(s=><button disabled={!ready} key={s.id} aria-pressed={s.id===sceneId} onClick={()=>onScene(s.id)}>{s.name}</button>)}</div><Button disabled={!ready} onClick={()=>{soundscape.prime();go('opening')}}>开始插花</Button>{g.previousSeat&&<button className="sound-link" disabled={!ready} onClick={g.recoverSeat}>取回刚才的作品</button>}<small>{ready?(g.message||'拖动环顾四周'):'正在准备场景光影…'}</small>{audio.status!=='playing'&&<button className="sound-link" onClick={soundscape.play}>开启自然声</button>}</section>
   if(stage==='opening'||stage==='return')return <section className="ritual-reading"><div><div className="ritual-lines"><small>{stage==='opening'?'调 心':'回 到 当 下'}</small><p key={stage+line} style={{animationDuration:Math.max(5200,(text[line]?.length??0)*275)+'ms'}}>{text[line]}</p></div>
-    <div className="reading-controls"><Button className="reading-enter" onClick={()=>go(stage==='opening'?'prepare':'done')}>{stage==='opening'?'进入备席':'看作品'}</Button><div className="ritual-links"><button onClick={advance}>下一段</button><button onClick={()=>g.updateRitual({line:0})}>重读</button></div></div></div></section>
+    <div className="reading-controls"><Button className="reading-enter" onClick={()=>go(stage==='opening'?'materials':'done')}>{stage==='opening'?'准备花材':'看作品'}</Button><div className="ritual-links"><button onClick={advance}>下一段</button><button onClick={()=>g.updateRitual({line:0})}>重读</button></div></div></div></section>
   const bottled=work.flowers.some(f=>f.location==='vase'),pouring=g.pourPhase==='flow',paused=g.pourPhase==='paused'
   const observe=()=>{
     const f=work.flowers.find(f=>f.id===g.selectedId&&f.location!=='vase')??work.flowers.find(f=>f.location!=='vase')
@@ -67,7 +70,7 @@ export default function RitualGuide({ready,onScene,onExport,library,onTidy,trimT
         if(!vasePlaced)return '轻点花器，把它放到身前。'
         if(!shearsPlaced)return '轻点花剪，把它放在花器右侧。'
         if(flowersInCup)return '从杯中取出花枝，轻放在花器左侧。'
-        return '轻点玻璃杯拿起，再点花瓶开始注水。'
+        return '轻点玻璃杯拿起，对准花瓶后点「开始倒水」。'
       }
       case 'observe':
         if(g.heldId)return '轻拖转动花枝，看一看花、叶和茎，赏完点「放回」。'
@@ -99,7 +102,7 @@ export default function RitualGuide({ready,onScene,onExport,library,onTidy,trimT
   const reading=stage==='observe'?source.observe:stage==='trim'?source.trim:source.arrange
   return <><header data-audio={audio.status} className="core-heading ritual-heading">
     <div className="step-card"><small>第{chapter?.number}式</small><h1>{chapter?.name}</h1>
-      {(pouring||paused)&&<div className="water-readout"><output data-water-live="">{Math.round(work.vaseMl)} / 130 毫升</output>{paused&&<span data-water-note=""/>}</div>}</div>
+</div>
     <div className="ritual-step-notes" role="status">
       {line>0&&['observe','trim','arrange'].includes(stage)&&<small>{reading[line%3]}</small>}
       {stage==='done'&&g.saveNotice&&<small>{g.saveNotice}</small>}
@@ -109,7 +112,7 @@ export default function RitualGuide({ready,onScene,onExport,library,onTidy,trimT
     {stage==='prepare'&&<><Button onClick={()=>work.vaseMl?go('observe'):setConfirmSkip(true)}>完成备席</Button>{library}<button onClick={()=>setReset(true)}>重新备席</button></>}
     {stage==='observe'&&<><Button disabled={!work.flowers.some(f=>f.location!=='vase')} onClick={observe}>{ritual.observed?'重新赏花':'开始赏花'}</Button><button onClick={()=>go('trim')}>看好了，开始修剪</button></>}
     {stage==='trim'&&<Button onClick={()=>go('arrange')}>进入第四式</Button>}
-    {stage==='arrange'&&<>{!ritual.arranging&&<Button onClick={()=>g.updateRitual({arranging:true})}>插花</Button>}{bottled&&<Button onClick={()=>go('tidy')}>插好了</Button>}{library}<button onClick={()=>go('trim')}>返回第三式</button></>}
+    {stage==='arrange'&&<>{!ritual.arranging&&<Button onClick={()=>g.updateRitual({arranging:true})}>插花</Button>}{bottled&&!g.heldId&&!g.carriedProp&&!g.insertPreview&&<button className="finish-arrangement" onClick={()=>go('tidy')}>插好了</button>}{library}<button onClick={()=>go('trim')}>返回第三式</button></>}
     {stage==='tidy'&&(line?<Button onClick={()=>go('bless')}>开始祝愿</Button>:<Button onClick={onTidy}>收好花席</Button>)}
     {stage==='tidy'&&<button onClick={()=>{g.updateRitual({stage:'arrange',arranging:true,line:0});if(bottled)g.focusVase(true)}}>继续调整</button>}
     {bottled&&!g.heldId&&!g.insertPreview&&stage==='arrange'&&ritual.arranging&&<button onClick={()=>g.focusVase(true)}>整理瓶中花枝</button>}
@@ -123,7 +126,7 @@ export default function RitualGuide({ready,onScene,onExport,library,onTidy,trimT
 
 
     </header>
-    <div className="ritual-step-cue ritual-feedback" role="status" aria-label="当前步骤"><p key={pouring?'pour':'guide'} data-water-note={pouring?'':undefined}>{detail}</p></div>
+    {!(stage==='prepare'&&g.cupHeld)&&!g.vaseFocus&&<div className="ritual-step-cue ritual-feedback" role="status" aria-label="当前步骤"><p key={pouring?'pour':'guide'} data-water-note={pouring?'':undefined}>{detail}</p></div>}
     <Dialog open={reset} onOpenChange={setReset}><DialogContent><DialogTitle>重新备席？</DialogTitle><DialogDescription>本式的水量、花材和器物会回到入席时的摆放。仍在当前场景，可以撤销。</DialogDescription><Button onClick={()=>{setReset(false);g.restartPreparation()}}>确认重新备席</Button><button onClick={()=>setReset(false)}>继续当前花席</button></DialogContent></Dialog>
     <Dialog open={confirmSkip} onOpenChange={setConfirmSkip}><DialogContent><DialogTitle>还未给花器注水</DialogTitle><DialogDescription>可以继续备席，也可以先去赏花。</DialogDescription><Button onClick={()=>setConfirmSkip(false)}>继续备席</Button><button onClick={()=>go('observe')}>略过注水</button></DialogContent></Dialog></>
 }

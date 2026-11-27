@@ -1,3 +1,4 @@
+import { fitDepth } from '../game/rules'
 import { Component, Suspense, lazy, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { ArrowLeft, ArrowRight, CircleHelp, Droplet, Pause, Sprout, Download, RotateCcw, Scissors, Undo2, Redo2, X } from 'lucide-react'
 import { heldInsertionPose } from '../scene/core/core-transforms'
@@ -64,7 +65,7 @@ export default function CorePrototype({initialAssets}:{initialAssets?:SceneAsset
   useEffect(()=>{
     const key=(e:KeyboardEvent)=>{
       if(e.defaultPrevented||document.querySelector('[role=dialog][data-state=open]')||(e.target as HTMLElement).matches('input,textarea,select,[contenteditable]'))return
-      if(useCoreStore.getState().ritual&&!['prepare','observe','trim','arrange','tidy'].includes(useCoreStore.getState().ritual!.stage))return
+      if(useCoreStore.getState().ritual&&!['materials','prepare','observe','trim','arrange','tidy'].includes(useCoreStore.getState().ritual!.stage))return
       if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();travel(e.shiftKey?'redo':'undo')}
       if(e.key==='Escape'){
         if(useCoreStore.getState().vaseFocus){world.current?.cancel();useCoreStore.getState().focusVase(false);return}
@@ -129,6 +130,7 @@ export default function CorePrototype({initialAssets}:{initialAssets?:SceneAsset
       {assets&&<SceneBoundary><Suspense fallback={<div className="core-loading">正在备好花席…</div>}><CoreCanvas assets={assets} onReady={onReady} onWorld={onWorld} onExport={onExport} contextRef={context}/></Suspense></SceneBoundary>}
     </div>
     {ritual?.stage==='prepare'&&g.cupHeld&&!g.blocked&&<div className="cup-pour-actions" data-flow={g.pourPhase==='flow'} role="group" aria-label="杯子倒水">
+      {!flowersInCup&&<div className="pour-reading"><output data-water-live="">{Math.round(g.history.present.vaseMl)} / 130 毫升</output><span data-water-note="" role="status">建议倒至约 87 毫升</span></div>}
       <Button size="sm" disabled={!flowersInCup&&vaseFull&&g.pourPhase!=='flow'}
         onClick={()=>{
           if(flowersInCup){g.dispatch({type:'empty-cup'});return}
@@ -137,6 +139,7 @@ export default function CorePrototype({initialAssets}:{initialAssets?:SceneAsset
         {flowersInCup?<Sprout aria-hidden="true"/>:g.pourPhase==='flow'?<Pause aria-hidden="true"/>:<Droplet aria-hidden="true"/>}
         {flowersInCup?'先放下花枝':g.pourPhase==='flow'?'停止倒水':vaseFull?(g.history.present.vaseMl>=130?'花瓶已满':'杯中无水'):g.pourPhase==='paused'?'继续添水':'开始倒水'}
       </Button>
+      {g.pourPhase==='ready'&&<Button size="sm" variant="ghost" onClick={()=>world.current?.pourAction?.('cancel')}>返回桌面</Button>}
       {g.pourPhase==='paused'&&<><Button size="sm" variant="secondary" onClick={()=>world.current?.pourAction?.('retry')}>重新倒水</Button><Button size="sm" variant="secondary" onClick={()=>world.current?.pourAction?.('finish')}>完成倒水</Button></>}
     </div>}
     {ritual&&<RitualGuide trimTools={ritual.stage==='trim'&&!g.blocked&&
@@ -146,10 +149,7 @@ export default function CorePrototype({initialAssets}:{initialAssets?:SceneAsset
           <Scissors aria-hidden="true"/>{g.scissors?'收剪':'裁剪'}
         </Button>
         {cuttingActions}
-      </div>} onTidy={()=>{world.current?.gatherPieces?.(true);g.updateRitual({line:1})}} library={ready&&!g.blocked&&['prepare','arrange'].includes(ritual.stage)&&
-      <FlowerLibrary key={ritual.stage} destination={ritual.stage==='prepare'?'cup':'table'} disabled={g.pourPhase==='flow'}
-        onOpen={()=>{cancel();return world.current?.portraits?.()??{}}}
-        preview={choice=>world.current?.sampleFlower?.(choice)}/>} ready={ready&&!switching&&assets?.sceneId===sceneId&&!error} onScene={chooseScene} onExport={wish=>capture.current(wish)}/>}
+      </div>} onTidy={()=>{world.current?.gatherPieces?.(true);g.updateRitual({line:1})}} library={ritual.stage==='materials'?<FlowerLibrary destination="cup" disabled={!ready||!!g.blocked} onOpen={cancel} preview={choice=>world.current?.sampleFlower?.(choice)}/>:<button disabled title="开新花席时可重新选取">本席花材已定</button>} ready={ready&&!switching&&assets?.sceneId===sceneId&&!error} onScene={chooseScene} onExport={wish=>capture.current(wish)}/>}
     {!ritual&&<header className="core-heading"><span className="core-brand">一席花</span><h1>{g.scissors?'有所取舍，也可以保留原样。':g.heldId?'拿近一点，看见花的姿态。':inserted?'顺着花的方向，慢慢安放。':'拿起一枝，慢慢看。'}</h1><p role="status" aria-live="polite">{g.message}</p>{g.storageError&&<small>进度暂未保存，请保持页面打开。</small>}</header>}
     {(interactive||ritual?.stage==='bless')&&<nav className="core-utilities" aria-label="便捷操作">
       {ritual&&<RitualSoundButton/>}
@@ -158,10 +158,17 @@ export default function CorePrototype({initialAssets}:{initialAssets?:SceneAsset
       <Button variant="ghost" size="icon" aria-label="操作帮助" title="操作帮助" onClick={()=>{cancel();setHelp(true)}}><CircleHelp/></Button></>}
     </nav>}
     {g.vaseFocus&&<aside className="vase-guide" aria-label="整理瓶中花枝"><strong>{inserted?'调整这一枝':'点一枝花，调整朝向'}</strong>
-      {inserted&&<div className="vase-adjust">{([['yaw','朝向'],['tilt','倾斜'],['depth','深浅'],['point','插点']] as const).map(([mode,label])=><Button key={mode} size="sm" variant={g.mode===mode?'secondary':'ghost'} aria-pressed={g.mode===mode} onClick={()=>g.setMode(mode)}>{label}</Button>)}
-        {g.mode!=='free'&&<><Button aria-label="减小调整" size="sm" onClick={()=>adjust(-1)}>−</Button><Button aria-label="增大调整" size="sm" onClick={()=>adjust(1)}>＋</Button></>}
-        {g.mode==='point'&&<><Button size="sm" onClick={()=>adjust(1,'z')}>向前</Button><Button size="sm" onClick={()=>adjust(-1,'z')}>向后</Button></>}</div>}
-      <Button onClick={()=>g.focusVase(false)}>整理好了</Button></aside>}
+      {inserted&&<div className="vase-fine" aria-label="微调选中的花枝">
+        {([['yaw','向左转','向右转'],['tilt','立直一点','倾斜一点'],['depth','提高一点','插深一点']] as const).map(([axis,less,more])=>
+          <div key={axis}>{[less,more].map((label,i)=><button key={label} type="button" onClick={()=>{
+            const delta=(i?1:-1)*(axis==='yaw'?5:axis==='tilt'?1:.003)
+            const raw=selected.pose[axis]+delta
+            const value=axis==='yaw'?(raw+360)%360:axis==='tilt'?Math.max(0,Math.min(12,raw)):fitDepth(raw,selected.length)
+            g.dispatch({type:'adjust',id:selected.id,pose:{[axis]:value}})
+          }}>{label}</button>)}</div>)}
+      </div>}
+      <small>拖花头调方向，拖空白处转视角</small>
+      <button className="exit-vase" onClick={()=>g.focusVase(false)}>回到桌前</button></aside>}
     <div className="desk-action-layout">
       {interactive&&!g.vaseFocus&&selected&&(!ritual||g.heldId||inserted)&&!g.blocked&&<div className="core-context" data-desk-card={Boolean(ritual&&(g.insertPreview||inserted))} data-held-card={!!(ritual&&g.heldId&&!g.insertPreview)} ref={context} aria-label="当前花枝操作">
         {selected&&<>
@@ -196,7 +203,7 @@ export default function CorePrototype({initialAssets}:{initialAssets?:SceneAsset
       {ritual?.stage!=='trim'&&cuttingActions}
     </div>
     {(!assets||error)&&<div className="core-loading" role={error?'alert':'status'}><p>{error||'正在备好花席…'}</p>{error&&<Button onClick={load}>重新载入</Button>}</div>}
-    <Dialog open={help} onOpenChange={setHelp}><DialogContent className="core-dialog"><DialogHeader><DialogTitle>随手而动，慢慢来</DialogTitle><DialogDescription>备席时点一下，物件自动抬起并保持高度。移动鼠标控制桌上的左右和前后，再点一下放下。滚轮可微调远近。右键或 Shift 拖动旋转，旋转时滚轮可沿视线翻转。拿起水杯，点一下花瓶或瓶旁「倒水」便可倾杯。点「停止倒水」看水量，可以继续添水或重新倒水，点「完成倒水」回到桌面。第二式点花拿近欣赏，拖动画面转动花枝。第三式点一下花就会自动拿到中央，再点左侧「裁剪」。指向枝叶看金色预览，轻点剪下。拖动花枝可转动，触屏先点预览、再点确认。第四式可拖整枝到瓶口，松手插入。也可先拿花，再点花瓶预览和确认。按住 Shift 拖动可转花。Esc 取消，Ctrl / ⌘ + Z 撤销。</DialogDescription></DialogHeader>
+    <Dialog open={help} onOpenChange={setHelp}><DialogContent className="core-dialog"><DialogHeader><DialogTitle>随手而动，慢慢来</DialogTitle><DialogDescription>备席时点一下，物件自动抬起并保持高度。移动鼠标控制桌上的左右和前后，再点一下放下。滚轮可微调远近。右键或 Shift 拖动旋转，旋转时滚轮可沿视线翻转。拿起水杯，点花瓶对准，再点「开始倒水」。点「停止倒水」看水量，可以继续添水或重新倒水，点「完成倒水」回到桌面。第二式点花拿近欣赏，拖动画面转动花枝。第三式点一下花就会自动拿到中央，再点左侧「裁剪」。指向枝叶看金色预览，轻点剪下。拖动花枝可转动，触屏先点预览、再点确认。第四式可拖整枝到瓶口，松手插入。也可先拿花，再点花瓶预览和确认。按住 Shift 拖动可转花。Esc 取消，Ctrl / ⌘ + Z 撤销。</DialogDescription></DialogHeader>
       {ritual?.stage==='prepare'&&<Button variant="outline" onClick={()=>{setHelp(false);g.updateRitual({stage:'opening',line:0})}}>重看调心</Button>}
       {ritual&&<details className="ritual-review"><summary>回读五式引导</summary>
         <label>选择一式 <select value={review} onChange={e=>setReview(Number(e.target.value))}><option value={-1}>请选择</option>{source.chapters.map((chapter,i)=><option key={chapter.name} value={i}>{chapter.name}</option>)}</select></label>

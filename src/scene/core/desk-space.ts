@@ -1,5 +1,5 @@
 import { Box3, Euler, Matrix4, Object3D, PerspectiveCamera, Plane, Quaternion, Ray, Vector3 } from 'three'
-import { BOX, DESK, inBox } from '../../game/desk-layout'
+import { BOX, DESK, WOOD_FRONT, inBox } from '../../game/desk-layout'
 import type { Arrangement, Vec3 } from '../../game/types'
 
 const X=new Vector3(1,0,0),Y=new Vector3(0,1,0)
@@ -10,7 +10,7 @@ export function deskView(width:number,height:number){
   const target=new Vector3(0,.96,-.065),back=new Vector3(0,-Math.sin(pitch),Math.cos(pitch))
   const tangent=Math.tan(fov*Math.PI/360)
   let distance=1.04
-  for(const z of [DESK.front,DESK.back]){
+  for(const z of [WOOD_FRONT,DESK.back]){
     const offset=new Vector3(.6,DESK.top,z).sub(target).applyAxisAngle(X,-pitch)
     distance=Math.max(distance,offset.z+Math.abs(offset.x)/(.93*aspect*tangent),offset.z+Math.abs(offset.y)/(.87*tangent))
   }

@@ -1,3 +1,5 @@
+import pictures from '../../content/flower-thumbnails.json'
+import { specimen } from '../../content/specimens'
 import {useEffect,useRef,useState} from 'react'
 import {Flower2,Plus,X} from 'lucide-react'
 import {Button} from '../ui/button'
@@ -10,7 +12,7 @@ type Stem=MaterialChoice&{key:string}
 type Props={
   destination:'cup'|'table'
   disabled:boolean
-  onOpen:()=>Partial<Record<FlowerKind,string>>
+  onOpen:()=>void
   preview:(choice:MaterialChoice)=>string|undefined
 }
 const kinds=Object.keys(CUP_FLOWERS) as FlowerKind[]
@@ -33,7 +35,7 @@ function Measure({label,unit,value,min,max,step,onChange}:MeasureProps){
 export default function FlowerLibrary({destination,disabled,onOpen,preview}:Props){
   const [open,setOpen]=useState(false),[picked,setPicked]=useState<Stem[]>([])
   const [selected,setSelected]=useState(''),[picture,setPicture]=useState<string>()
-  const [portraits,setPortraits]=useState<Partial<Record<FlowerKind,string>>>({})
+  const [category,setCategory]=useState('常用花材')
   const serial=useRef(0),renderer=useRef(preview)
   renderer.current=preview
   const work=useCoreStore(s=>s.history.present)
@@ -46,7 +48,7 @@ export default function FlowerLibrary({destination,disabled,onOpen,preview}:Prop
   },[active,open])
   function change(next:boolean){
     if(next){
-      setPortraits(onOpen())
+      onOpen();setCategory('常用花材')
       const stems=destination==='cup'?work.flowers.filter(f=>f.location==='cup').map(f=>({key:f.id,id:f.id,kind:f.kind,length:f.length,headScale:f.headScale??1})):[]
       setPicked(stems);setSelected(stems[0]?.key??'')
     }
@@ -62,9 +64,10 @@ export default function FlowerLibrary({destination,disabled,onOpen,preview}:Prop
   return <Dialog open={open} onOpenChange={change}>
     <DialogTrigger asChild><Button disabled={disabled} className="material-library-trigger" size="sm"><Flower2 aria-hidden="true"/>花材库</Button></DialogTrigger>
     <DialogContent className="core-dialog flower-sheet"><DialogTitle>花材库</DialogTitle>
-      <DialogDescription>{destination==='cup'?'选好的花枝放入玻璃杯。':'新选的花枝会放在桌上，可以拿起插入花器。'}</DialogDescription>
-      <div className="flower-choices">{kinds.map(kind=><button key={kind} type="button" className="material-card" aria-label={'添加'+CUP_FLOWERS[kind].label} disabled={total>=MAX_FLOWERS} onClick={()=>add(kind)}>
-        {portraits[kind]&&<img src={portraits[kind]} alt=""/>}<span>{CUP_FLOWERS[kind].label}<Plus size={14} aria-hidden="true"/></span></button>)}</div>
+      <DialogDescription>{destination==='cup'?'可搭配 3–6 种花、叶或草。选好的枝条放入杯中。':'新选的花枝会放在桌上，可以拿起插入花器。'}</DialogDescription>
+      <div className="specimen-groups" role="group" aria-label="花材分类">{['常用花材','花材','线条花材','叶材','山野花材'].map(group=><button type="button" key={group} aria-pressed={group===category} onClick={()=>setCategory(group)}>{group}</button>)}</div>
+      <div className="flower-choices">{kinds.filter(kind=>(specimen(kind)?.category??'常用花材')===category).map(kind=><button key={kind} type="button" className="material-card" aria-label={'添加'+CUP_FLOWERS[kind].label} disabled={total>=MAX_FLOWERS} onClick={()=>add(kind)}>
+        <img src={pictures[kind]} alt=""/><span>{CUP_FLOWERS[kind].label}<Plus size={14} aria-hidden="true"/></span></button>)}</div>
       {picked.length>0&&<><div className="stem-list" aria-label="已选花枝">{picked.map((f,i)=><button key={f.key} aria-pressed={f===active} onClick={()=>setSelected(f.key)}>
         {i+1} · {CUP_FLOWERS[f.kind].label}</button>)}</div>
       <div className="stem-editor">

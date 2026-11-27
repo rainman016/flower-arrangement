@@ -386,6 +386,11 @@ export default function CoreControls({world,kit}:{world:CoreWorld;kit:Object3D})
       if(current.insertPreview||current.ritual?.stage==='arrange'&&!current.ritual.arranging)return
       canvas.title=''
       let hit=pick()
+      if(current.vaseFocus&&(!hit?.id||!['flower','grip'].includes(hit.kind))){
+        e.preventDefault();canvas.setPointerCapture(e.pointerId)
+        gesture={kind:'orbit-vase',pointer:e.pointerId,x:e.clientX,y:e.clientY,moved:false,start:new Vector3(world.vaseViewAngle??0,0,0),rotation:new Quaternion(),plane:new Plane()}
+        return
+      }
       if(current.ritual?.stage==='observe'&&current.heldId){
         const root=world.flowers.get(current.heldId)
         if(root)hit={kind:'flower',id:current.heldId,point:root.getWorldPosition(new Vector3())}
@@ -413,6 +418,7 @@ export default function CoreControls({world,kit}:{world:CoreWorld;kit:Object3D})
         g.grab=startGrab(object,hit.point,camera as PerspectiveCamera);g.lastX=e.clientX;g.lastY=e.clientY
         g.spin=e.button===2||e.shiftKey;g.freeRotation=object.quaternion.clone()
       }
+      if(hit.id&&s.vaseFocus)s.select(hit.id)
       if(hit.kind==='flower'){
         const f=s.history.present.flowers.find(f=>f.id===hit.id)!
         g.kind=s.heldId===hit.id?(s.ritual?.stage==='arrange'&&!g.spin?'move':'rotate'):f.location==='vase'?'pose':'pending'
@@ -473,6 +479,7 @@ export default function CoreControls({world,kit}:{world:CoreWorld;kit:Object3D})
       if(Math.hypot(dx,dy)<5&&!g.moved)return
       if(!g.moved&&trimMode()){clearPreview();touchCut=undefined;g.cut=undefined}
       g.moved=true
+      if(g.kind==='orbit-vase'){world.vaseViewAngle=g.start.x-dx*.008;invalidate();return}
       if(g.kind==='pending'){
         if(g.timer)clearTimeout(g.timer)
         if(!g.grab){
@@ -569,7 +576,7 @@ export default function CoreControls({world,kit}:{world:CoreWorld;kit:Object3D})
         const pose={...f.pose}
         if(s.mode==='free'){
           const tilt=pose.tilt*Math.PI/180,yaw=pose.yaw*Math.PI/180
-          const delta=new Vector3(dx*.0015,0,dy*.0015).applyQuaternion(world.vase!.quaternion.clone().invert())
+          const delta=new Vector3(dx*.0015,0,dy*.0015).applyAxisAngle(yAxis,world.vaseViewAngle??0).applyQuaternion(world.vase!.quaternion.clone().invert())
           const x=Math.tan(tilt)*Math.cos(yaw)+delta.x,z=Math.tan(tilt)*Math.sin(yaw)+delta.z
           pose.tilt=Math.min(12,Math.atan(Math.hypot(x,z))*180/Math.PI)
           if(x||z)pose.yaw=(Math.atan2(z,x)*180/Math.PI+360)%360
@@ -595,6 +602,7 @@ export default function CoreControls({world,kit}:{world:CoreWorld;kit:Object3D})
         dropQueuedHover();move(e)
       }
       gesture=null;world.active=null;releaseCapture(g);clearPreview();canvas.style.cursor='default'
+      if(g.kind==='orbit-vase'){invalidate();return}
       const s=useCoreStore.getState();let committed=false
       const held=s.history.present.flowers.find(f=>f.id===s.heldId)
       const onPlacedFlower=s.history.present.flowers.some(f=>f.id===g.id&&f.location==='table')

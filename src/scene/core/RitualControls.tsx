@@ -122,10 +122,13 @@ export default function RitualControls({world}:{world:CoreWorld}){
         cache.eye.x+=portrait?0:distance*tan*camera.aspect*.20
         cache.key=key
       }
-      camera.position.copy(cache.eye)
+      const pivot=cache.bounds.getCenter(new Vector3())
+      const orbit=world.vaseViewAngle??0
+      camera.position.copy(cache.eye).sub(pivot).applyAxisAngle(up,orbit).add(pivot)
+      camera.quaternion.premultiply(new Quaternion().setFromAxisAngle(up,orbit))
       camera.updateMatrixWorld()
       const panel=gl.domElement.closest('.core-studio')?.querySelector<HTMLElement>('.vase-guide')
-      const layout=panel?key+'/'+panel.offsetWidth+'/'+panel.offsetHeight:''
+      const layout=panel?key+'/'+orbit+'/'+panel.offsetWidth+'/'+panel.offsetHeight:''
       if(panel&&cache.layout!==layout){
         const b=cache.bounds,points=[b.min.x,b.max.x].flatMap(x=>[b.min.y,b.max.y].flatMap(y=>
           [b.min.z,b.max.z].map(z=>new Vector3(x,y,z).project(camera))))
@@ -139,8 +142,8 @@ export default function RitualControls({world}:{world:CoreWorld}){
         panel.style.top=Math.max(12,Math.min(size.height-panel.offsetHeight-12,y))+'px'
         cache.layout=layout
       }
-    }else {bottleFrame.current.key='';bottleFrame.current.layout=''}
-    const closePour=s.pourPhase==='flow'||s.pourPhase==='paused'
+    }else {world.vaseViewAngle=0;bottleFrame.current.key='';bottleFrame.current.layout=''}
+    const closePour=s.pourPhase!=='carry'
     const blend=reduced?Number(closePour):pourFocus.current+(Number(closePour)-pourFocus.current)*(1-Math.exp(-16*delta))
     pourFocus.current=Math.abs(blend-Number(closePour))<.002?Number(closePour):blend
     if(world.vase&&pourFocus.current>0){
@@ -414,7 +417,7 @@ export default function RitualControls({world}:{world:CoreWorld}){
       t.flowStart=pose.start+pose.duration;t.notified=s.history.present.vaseMl>=130*2/3
       if(pour&&!sessionWater.current)sessionWater.current={cupMl:s.history.present.cupMl,vaseMl:s.history.present.vaseMl,spillMl:s.history.present.spillMl??0}
       world.pouring=pour;world.previewMl=0
-      useCoreStore.setState({pourPhase:pour?'flow':'ready',message:pour?'再点一下停水。':'杯沿已对准。点花瓶倒水，移开继续拿杯。'})
+      useCoreStore.setState({pourPhase:pour?'flow':'ready',message:pour?'再点一下停水。':'杯沿已对准，点「开始倒水」。'})
       hideLanding();invalidate()
     }
     world.pourAction=action=>{
@@ -426,7 +429,7 @@ export default function RitualControls({world}:{world:CoreWorld}){
       }
       if(action==='retry'){
         if(phase==='paused'&&sessionWater.current){
-          s.dispatch({type:'restore-water',...sessionWater.current});approach(true)
+          s.dispatch({type:'restore-water',...sessionWater.current});approach(false)
         }
         return
       }
@@ -555,7 +558,7 @@ export default function RitualControls({world}:{world:CoreWorld}){
         const hit=pick(e);if(isOfferingTarget(hit)){useCoreStore.setState({offering:performance.now()});s.updateRitual({line:1});invalidate()}
         intercept(e);return
       }
-      if(['opening','done','return'].includes(stage)){intercept(e);return}
+      if(['opening','materials','done','return'].includes(stage)){intercept(e);return}
       if(stage==='arrange'&&s.heldId&&!carrying.current&&e.button===0&&!e.shiftKey)return
       const held=carrying.current,hit=held?null:pick(e,true),hand=held??hit
       if(!hand)return
@@ -577,7 +580,7 @@ export default function RitualControls({world}:{world:CoreWorld}){
         if(hitsVase(e)){
           const hint=pourHint()
           if(hint)s.tell(hint)
-          else world.pourAction?.('start')
+          else approach(false)
           return
         }
         if(s.pourPhase==='ready')world.pourAction?.('cancel')
@@ -597,8 +600,7 @@ export default function RitualControls({world}:{world:CoreWorld}){
         t.lookX-=(e.clientX-t.x)*.005;t.lookY=Math.max(-.9,Math.min(.9,t.lookY+(e.clientY-t.y)*.004));t.x=e.clientX;t.y=e.clientY;intercept(e);invalidate();return
       }
       if(!g&&held){
-        if(s.pourPhase==='paused'||s.pourPhase==='flow'||(s.pourPhase==='ready'&&overPourArea(e))){intercept(e);return}
-        if(s.pourPhase==='ready')world.pourAction?.('cancel')
+        if(s.pourPhase!=='carry'){intercept(e);return}
         if(held.id==='cup'&&returningToDesk&&deskHit(ray.ray)){
           const cup=held.root
           recovery.current={start:performance.now(),from:cup.position.clone(),rotation:cup.quaternion.clone(),target:cup.position.clone(),end:held.grab.rotation.clone()}

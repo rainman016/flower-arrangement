@@ -54,7 +54,7 @@ function createFocusView(gl:WebGLRenderer){
   }
   function draw(scene:Scene,camera:Camera,world:CoreWorld,width:number,height:number){
     const state=useCoreStore.getState(),id=state.heldId,stage=state.ritual?.stage
-    const pour=stage==='prepare'&&(state.pourPhase==='flow'||state.pourPhase==='paused')
+    const pour=stage==='prepare'&&state.pourPhase!=='carry'
     const subject=(state.vaseFocus||pour)?world.vase:id?world.flowers.get(id):undefined
     if(!state.vaseFocus&&stage==='arrange'&&state.ritual?.arranging&&world.active&&['move','pose','rotate'].includes(world.active.kind)){
       if(active)restore()
@@ -103,7 +103,7 @@ function createFocusView(gl:WebGLRenderer){
     }
     const size=Math.min(.45,560/Math.max(width,height))
     const w=Math.max(1,Math.round(width*size)),h=Math.max(1,Math.round(height*size))
-    const shotKey=[pour,state.vaseFocus,id,state.serial,state.scissors,movingKey,state.ritual?.sceneId,w,h,camera.projectionMatrix.elements[5]].join('/')
+    const shotKey=[pour,state.vaseFocus,state.vaseFocus?Math.round((world.vaseViewAngle??0)*9):0,id,state.serial,state.scissors,movingKey,state.ritual?.sceneId,w,h,camera.projectionMatrix.elements[5]].join('/')
     const now=performance.now(),previousTarget=gl.getRenderTarget()
     if(key!==shotKey||!camera.matrixWorld.equals(cameraMatrix)&&now-lastShot>75){
       const hidden=new Set<Object3D>(visible)

@@ -1,8 +1,13 @@
 import type { FlowerKind, FlowerState, SceneId } from '../game/types'
+import { SPECIMENS, type SpecimenId } from './specimens'
+function specimenEntries<T>(map:(id:SpecimenId)=>T){
+  return Object.fromEntries((Object.keys(SPECIMENS) as SpecimenId[]).map(id=>[id,map(id)])) as Record<SpecimenId,T>
+}
 const manifest = __FLOWER_ASSETS__
 export const ASSET_VERSION = manifest.version
 export const LIMITS = manifest.limits
 export const FLOWERS: Record<FlowerKind, { name: string; detail: string; length: number; color: string }> = {
+  ...specimenEntries(id=>({name:SPECIMENS[id].label,detail:SPECIMENS[id].category,length:Math.max(.30,SPECIMENS[id].length),color:SPECIMENS[id].accent})),
   yellow: { name: '黄野菊', detail: '一抹暖黄，轻轻舒展', length: .29, color: '#d5aa48' },
   white: { name: '白野花', detail: '细小花瓣，自有留白', length: .30, color: '#f3eedb' },
   daisy: { name: '小雏菊', detail: '白色细瓣围着一颗金黄花心', length: .245, color: '#fffaf0' },
@@ -17,6 +22,7 @@ export const restoredScene = (id: SceneId): SceneId => id === 'rain' ? 'creek' :
 
 export const MAX_FLOWERS = 12
 export const CUP_FLOWERS: Record<FlowerKind, { label: string; length: number }> = {
+  ...specimenEntries(id=>({label:SPECIMENS[id].label,length:SPECIMENS[id].length})),
   daisy: {label:'小雏菊',length:.222}, grass: {label:'狗尾巴草',length:.254},
   yellow: {label:'黄野菊',length:.209}, white: {label:'五瓣白野花',length:.254},
 }

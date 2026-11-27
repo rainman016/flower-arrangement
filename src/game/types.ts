@@ -1,5 +1,5 @@
 export type SceneId = 'bamboo' | 'rain' | 'creek'
-export type FlowerKind = 'yellow' | 'white' | 'grass' | 'daisy'
+export type FlowerKind = 'yellow' | 'white' | 'grass' | 'daisy' | import('../content/specimens').SpecimenId
 export type Chapter = 'opening' | 'prepare' | 'observe' | 'trim' | 'arrange' | 'tidy' | 'bless' | 'done'
 export type Pose = { yaw: number; tilt: number; depth: number; x: number; z: number }
 export type MaterialChoice = { id?:string; kind:FlowerKind; length:number; headScale:number }

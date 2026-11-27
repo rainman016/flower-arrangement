@@ -1,3 +1,4 @@
+import {MeshStandardMaterial} from 'three'
 import {ShaderChunk} from 'three'
 import {CatmullRomCurve3} from 'three'
 import {FlowerFocus} from './FlowerFocus'
@@ -19,6 +20,7 @@ import { SceneMotion } from '../motion/SceneMotion'
 import { centerObject, createPiece, createPlant, disposeGeometry } from './botanical-geometry'
 import { coreFlowerPose, heldScissors, SCISSORS_REST } from './core-transforms'
 import CoreControls from './CoreControls'
+import { SeatCloth } from './SeatCloth'
 import { flowerPortraits } from './flower-portraits'
 import type { FlowerKind } from '../../game/types'
 import { BOX } from '../../game/desk-layout'
@@ -35,7 +37,7 @@ const overflowPath=new CatmullRomCurve3([new Vector3(),new Vector3(.003,-.003,.0
 export type CoreWorld={
   pieces:Map<string,Group>;cancelPiece?:()=>boolean;gatherPieces?:(tidy?:boolean)=>void;sideFlower?:()=>void
   sampleFlower?:(choice:import('../../game/types').MaterialChoice)=>string|undefined
-  portraits?:()=>Partial<Record<FlowerKind,string>>
+  vaseViewAngle?:number; portraits?:()=>Partial<Record<FlowerKind,string>>
   overflow:Mesh|null; pickFlower?:(e:PointerEvent)=>{id:string;point:Vector3}|undefined; cup:Group|null; water:Mesh|null; cupWater:CupLiquid|null; stream:Mesh|null; previewMl:number; pouring:boolean; abortRitual?:()=>boolean; takeCup?:()=>void; pourAction?:(action:'start'|'stop'|'cancel'|'retry'|'finish')=>void
   flowers:Map<string,Group>;scissors:Group|null;table:Object3D|null;tray:Object3D|null;vase:Group|null;ghost:Group|null;marker:Mesh|null
   stroke?:ReturnType<typeof shearStroke>;active:{kind:string;id?:string}|null;cancel:()=>boolean;zoom:number;cut:(target:string,at:number,commit:boolean)=>boolean
@@ -64,6 +66,20 @@ function FlowerObject({flower,kit,world}:{flower:FlowerState;kit:Object3D;world:
     return restFlower(model,pose.position,pose.quaternion,!flower.tableRotation||Math.abs(new Vector3(0,1,0).applyQuaternion(pose.quaternion).y)>.20)
   },[flower,work.tools,model,held])
   const visibleModel=resting?.model??model
+  const highlight=useCoreStore(s=>s.vaseFocus&&s.selectedId===flower.id)
+  useLayoutEffect(()=>{
+    if(!highlight)return
+    const restore=new Map<Mesh,Mesh['material']>(),tints=new Map<MeshStandardMaterial,MeshStandardMaterial>()
+    visibleModel.traverse(node=>{
+      if(!(node instanceof Mesh)||!(node.material instanceof MeshStandardMaterial))return
+      const original=node.material
+      let tint=tints.get(original)
+      if(!tint){tint=original.clone();tint.emissive.set('#9e7e3e');tint.emissiveIntensity=.26;tints.set(original,tint)}
+      restore.set(node,original);node.material=tint
+    })
+    invalidate()
+    return ()=>{restore.forEach((m,n)=>{n.material=m});tints.forEach(m=>m.dispose());invalidate()}
+  },[highlight,visibleModel,invalidate])
   const nearDesk=held||flower.location==='table'
   useLayoutEffect(()=>{
     if(nearDesk)return registerFlowerShadow(scene,visibleModel,flowerShadowGeometry(visibleModel))
@@ -215,6 +231,7 @@ function Tools({assets,world}:{assets:SceneAssets;world:CoreWorld}) {
       wood.forEach(material=>material.dispose())
     }
   },[assets.sceneId,models])
+  const supportRef=useRef<Group>(null)
   const minStandbyY=useMemo(()=>{
     const bounds=localBounds(models.scissors),v=new Vector3()
     const rotation=new Quaternion().setFromEuler(new Euler(Math.PI/2,0,.65,'ZXY'))
@@ -227,7 +244,7 @@ function Tools({assets,world}:{assets:SceneAssets;world:CoreWorld}) {
   const standbyY=useRef(0)
   const animated=useRef<{start:number;from:Vector3;rotation:Quaternion;to:Vector3;end:Quaternion}|null>(null),mounted=useRef(false)
   useLayoutEffect(()=>{
-    world.table=models.table;world.tray=models.tray
+    world.table=supportRef.current??models.table;world.tray=models.tray
     const object=world.scissors;if(!object)return
     const to=new Vector3(...(scissorsHeld?heldScissors(work,cutting):(work.tools?.scissors??SCISSORS_REST)))
     standbyY.current=to.y
@@ -259,7 +276,7 @@ function Tools({assets,world}:{assets:SceneAssets;world:CoreWorld}) {
     models.scissors.getObjectByName('scissors_half_1')!.rotation.y=opening
   })
   return <>
-    <primitive object={models.table} userData={{role:'table'}} dispose={null}/>
+    <group ref={supportRef} userData={{role:'table'}}><primitive object={models.table} dispose={null}/>{work.tools&&<SeatCloth/>}</group>
     <primitive object={models.tray} position={[0,.761,work.tools?BOX.z:0]} scale={work.tools?[BOX.scaleX,1,BOX.scaleZ]:[1,1,1]} userData={{role:'table'}} dispose={null}/>
     <group ref={o=>{world.vase=o}} name="core-vase" position={[work.vase.x,work.tools?.vaseY??BASE_Y,work.vase.z-.025]} quaternion={propRotation(work,'vase')} userData={{role:'vase'}}>
       <primitive object={models.vase} dispose={null}/>
@@ -343,16 +360,10 @@ function Contents({assets,onReady,onWorld,onExport,contextRef}:CanvasProps) {
     const node=contextRef.current,s=useCoreStore.getState(),object=s.selectedId?world.flowers.get(s.selectedId):undefined
     const pour=gl.domElement.parentElement?.closest('.core-studio')?.querySelector<HTMLElement>('.cup-pour-actions')
     if(pour&&world.cup&&world.vase&&s.history.present.tools){
-      const anchor=world.vase.localToWorld(new Vector3(0,.178,0))
-      const right=new Vector3().setFromMatrixColumn(camera.matrixWorld,0)
-      const safeEdge=anchor.clone().addScaledVector(right,.155).project(camera)
-      anchor.project(camera)
-      const x=(1+anchor.x)*size.width/2,y=(1-anchor.y)*size.height/2
-      const width=pour.offsetWidth,height=pour.offsetHeight
-      const gap=Math.max(35,(safeEdge.x-anchor.x)*size.width/2+10)
-      const side=x+gap+width<=size.width-8?x+gap:x-width-gap
-      pour.style.left=Math.max(8,Math.min(size.width-width-8,side))+'px'
-      pour.style.top=Math.max(8,Math.min(size.height-height-8,y-height/2))+'px'
+      const base=world.vase.getWorldPosition(new Vector3()).project(camera)
+      const height=pour.offsetHeight
+      pour.style.left=Math.round(size.width/2-pour.offsetWidth/2)+'px'
+      pour.style.top=Math.max(8,Math.min(size.height-height-12,(1-base.y)*size.height/2+12))+'px'
       pour.style.visibility='visible'
       pour.style.setProperty('--vase-level',String(Math.min(1,(s.history.present.vaseMl+world.previewMl)/130)))
     }

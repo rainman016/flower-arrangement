@@ -41,7 +41,7 @@ try{
       const layout=await page.evaluate(()=>{
         const title=document.querySelector('.step-card').getBoundingClientRect()
         const hint=document.querySelector('.ritual-feedback').getBoundingClientRect()
-        const buttons=[...document.querySelectorAll('.ritual-actions>button')].map(b=>b.getBoundingClientRect())
+        const buttons=[...document.querySelectorAll('.ritual-actions>button:not(.finish-arrangement)')].map(b=>b.getBoundingClientRect())
         const stage=document.querySelector('main').dataset.stage
         const names={prepare:'静心备席',observe:'缘起赏花',trim:'慈心修剪',arrange:'正念插花',bless:'无限祝愿'}
         const centered=Math.abs((hint.left+hint.right)/2-innerWidth/2)<2
@@ -76,12 +76,28 @@ try{
     await page.waitForFunction(()=>window.reviewGains.at(-1)?.gain.value>.05)
     verify('入席时自然声可闻',true)
     await button('开始插花')
-    const entry=await page.getByRole('button',{name:'进入备席'}).boundingBox()
+    const entry=await page.getByRole('button',{name:'准备花材'}).boundingBox()
     verify('进入备席为正文下方居中大按钮',entry&&entry.width>=280&&entry.height>=50&&Math.abs(entry.x+entry.width/2-page.viewportSize().width/2)<3)
     verify('显示调心原文',await page.getByText(/青青翠竹/).isVisible())
     for(let i=0;i<3;i++)await button('下一段')
     verify('调心末段完整',await page.getByText(/开启静心插花的旅程/).isVisible())
-    await button('进入备席');await wait(550);await checkRail()
+    await button('准备花材')
+    if(id==='bamboo'){
+      await button('花材库')
+      await button('添加小雏菊');await button('添加小雏菊');await button('2 · 五瓣白野花');await button('移除当前这枝五瓣白野花')
+      await page.screenshot({path:resolve(dir,'flower-library.png')})
+      await button('选好了')
+      const picked=await read()
+      const daisies=picked.history.present.flowers.filter(f=>f.kind==='daisy')
+      verify('小雏菊可多选且各有实体',daisies.length===2&&await page.evaluate(()=>[...window.__coreInspect.world.flowers.values()].filter(o=>o.getObjectByName('daisy-white-rays')).length===2))
+      await button('花材库');await button('添加狗尾巴草');await page.keyboard.press('Escape')
+      verify('关闭花单保留已确认的选择',(await read()).history.present.flowers.length===picked.history.present.flowers.length)
+      await page.keyboard.press('Control+z');await wait(300)
+      verify('整张选花单只需撤销一次',(await read()).history.present.flowers.map(f=>f.id).join(',')==='f-1,f-2,f-3')
+    }
+    await button('用这些花材开始备席');await wait(550);await checkRail()
+    verify('开始备席后锁定花材库',await page.getByRole('button',{name:'本席花材已定'}).isDisabled())
+
     await page.screenshot({path:resolve(dir,id+'-prepare.png')})
     await page.waitForFunction(()=>document.querySelector('.ritual-heading')?.dataset.audio==='playing')
     await page.waitForFunction(()=>window.reviewGains.at(-1)?.gain.value>.05)
@@ -105,17 +121,6 @@ try{
       verify('重新备席保留当前场景且可撤销',(await read()).ritual.sceneId===id&&(await read()).history.past.length===beforeReset.past.length+1)
       await page.keyboard.press('Control+z')
       verify('撤销重新备席恢复原桌面',JSON.stringify((await read()).history.present)===JSON.stringify(beforeReset.present))
-      await button('花材库')
-      await button('添加小雏菊');await button('添加小雏菊');await button('2 · 五瓣白野花');await button('移除当前这枝五瓣白野花')
-      await page.screenshot({path:resolve(dir,'flower-library.png')})
-      await button('选好了')
-      const picked=await read()
-      const daisies=picked.history.present.flowers.filter(f=>f.kind==='daisy')
-      verify('小雏菊可多选且各有实体',daisies.length===2&&await page.evaluate(()=>[...window.__coreInspect.world.flowers.values()].filter(o=>o.getObjectByName('daisy-white-rays')).length===2))
-      await button('花材库');await button('添加狗尾巴草');await page.keyboard.press('Escape')
-      verify('关闭花单保留已确认的选择',(await read()).history.present.flowers.length===picked.history.present.flowers.length)
-      await page.keyboard.press('Control+z');await wait(300)
-      verify('整张选花单只需撤销一次',(await read()).history.present.flowers.map(f=>f.id).join(',')==='f-1,f-2,f-3')
       await click(pos('cup',[.021,.035,0]))
       verify('第一次拿起带花杯即有可执行的取花按钮',await page.getByRole('button',{name:'先放下花枝',exact:true}).isEnabled())
       const target=await pos('vase',[0,.179,0])
@@ -202,11 +207,9 @@ try{
       })
       verify('靠近自动对准且花器半透明，点击前不出水',preview.seeThrough&&preview.emptyIsDry&&preview.gap<.051&&!preview.flow&&preview.water===0)
       const outside=await page.evaluate(()=>{
-        const a=window.__coreInspect,box=new a.Box3().setFromObject(a.world.cup),xs=[]
-        for(const x of [box.min.x,box.max.x])for(const y of [box.min.y,box.max.y])for(const z of [box.min.z,box.max.z])
-          xs.push((new a.Vector3(x,y,z).project(a.camera).x+1)*innerWidth/2)
-        const button=document.querySelector('.cup-pour-actions button').getBoundingClientRect()
-        return button.left>=Math.max(...xs)+2||button.right<=Math.min(...xs)-2
+        const a=window.__coreInspect,base=a.world.vase.getWorldPosition(new a.Vector3()).project(a.camera)
+        const card=document.querySelector('.cup-pour-actions').getBoundingClientRect()
+        return Math.abs(card.x+card.width/2-innerWidth/2)<2&&card.top>(1-base.y)*innerHeight/2-3&&document.querySelectorAll('[data-water-note]').length===1
       })
       verify('开始提示避开杯身轮廓',outside)
     }
@@ -224,8 +227,8 @@ try{
       })
       verify('窄屏瓶旁提示可点',accessible)
       await page.setViewportSize({width:1440,height:900});await wait(320)
-      await page.mouse.move(1220,670,{steps:10});await wait(240)
-      verify('移开自动退出预览，保持持杯且花器恢复', (await read()).cupHeld&&(await read()).history.present.vaseMl===0&&!await page.evaluate(()=>window.__coreInspect.world.vase.userData.pouring))
+      await button('返回桌面');await wait(350)
+      verify('离开集中注水卡后仍持杯且花器恢复', (await read()).cupHeld&&(await read()).history.present.vaseMl===0&&!await page.evaluate(()=>window.__coreInspect.world.vase.userData.pouring))
       const historyBefore=(await read()).history.past.length
       const firstWater=page.evaluate(()=>new Promise(resolve=>{
         const a=window.__coreInspect,w=a.world,lip=w.cup.getObjectByName('glass_pour_lip'),rim=w.vase.localToWorld(new a.Vector3(0,.179,0))
@@ -246,14 +249,16 @@ try{
       const cancelled=await read()
       verify('倒水中撤销只取消这一段',cancelled.cupHeld&&cancelled.history.present.vaseMl===0&&cancelled.history.past.length===historyBefore)
       await click(pos('vase',[0,.09,0]))
-      await page.mouse.move(1200,640)
+      await wait(350)
+      verify('点瓶只对准，等待明确开始',(await read()).history.present.vaseMl===0&&!await page.evaluate(()=>window.__coreInspect.world.pouring))
+      await button('开始倒水')
       await page.waitForFunction(()=>window.__coreInspect.world.previewMl>10)
       await click(pos('vase',[0,.09,0]));await wait(200)
       const small=await read(),settled=small.history.present.vaseMl
       verify('点停后杯中有余水且可在近景重倒',small.cupHeld&&await pourButton('重新倒水').isVisible()&&settled>0&&settled<86.67)
       await wait(180)
       verify('停止后杯瓶水量不再变化',(await read()).history.present.vaseMl===settled&&!await page.evaluate(()=>window.__coreInspect.world.pouring))
-      await button('重新倒水')
+      await button('重新倒水');await button('开始倒水')
       await page.waitForFunction(()=>window.__coreInspect.world.pouring&&window.__coreInspect.world.previewMl>2)
       verify('重新倒水从本次开始前水量出发',(await read()).history.present.vaseMl===0)
       await button('停止倒水')
@@ -271,7 +276,7 @@ try{
       }
       requestAnimationFrame(sample)
     }))
-    if(id==='creek')await click(pos('vase',[0,.089,0]));else await button('开始倒水')
+    if(id==='creek')await click(pos('vase',[0,.089,0]));await button('开始倒水')
     await page.mouse.move(mouth.x+150,mouth.y+75,{steps:3})
     await page.waitForFunction(()=>window.__coreInspect.world.stream.visible&&window.__coreInspect.world.previewMl>20)
     verify('单击后水流持续，实际杯沿悬在瓶口上方',await page.evaluate(()=>{
@@ -453,8 +458,25 @@ try{
     await drag(pos(f.id,[0,.025,0]),pos('vase',[0,.179,0]))
     verify('抓茎到移动后的瓶口成功插入',(await read()).history.present.flowers[0].location==='vase')
     if(id==='bamboo'){
-      await button('朝向');await button('增大调整')
-      verify('已插花枝可调整朝向',(await read()).history.present.flowers[0].pose.yaw!==after.pose.yaw)
+      await button('整理瓶中花枝');await wait(700)
+      const flowerPoint=()=>page.evaluate(id=>{
+        const a=window.__coreInspect,m=a.world.flowers.get(id).getObjectByName('flower-crown'),bounds=new a.Box3().setFromObject(m)
+        const center=bounds.getCenter(new a.Vector3()).project(a.camera)
+        return {x:(1+center.x)*innerWidth/2,y:(1-center.y)*innerHeight/2}
+      },f.id)
+      await click(flowerPoint());await wait(180)
+      await button('向右转');const nudged=(await read()).history.present.flowers[0].pose
+      verify('瓶中一点选枝，按钮微调',nudged.yaw!==after.pose.yaw)
+      const h=await flowerPoint();await drag(h,{x:h.x+45,y:h.y+18})
+      const relaxed=(await read()).history.present.flowers[0].pose
+      verify('按钮之后可直接拖花头，松手保存',JSON.stringify(relaxed)!==JSON.stringify(nudged))
+      await page.keyboard.press('Control+z');await wait(220)
+      verify('一次撤销只还原这次拖动',JSON.stringify((await read()).history.present.flowers[0].pose)===JSON.stringify(nudged))
+      const viewBefore=await page.evaluate(()=>window.__coreInspect.camera.position.toArray())
+      await drag({x:280,y:235},{x:365,y:235})
+      verify('拖空处环看花瓶',await page.evaluate(p=>window.__coreInspect.camera.position.distanceTo(new window.__coreInspect.Vector3(...p))>.01,viewBefore))
+      verify('调花时隐藏整席收尾按钮',await page.getByRole('button',{name:'插好了',exact:true}).count()===0)
+      await page.screenshot({path:resolve(dir,'vase-adjust.png')});await button('回到桌前')
     }
     await button('插好了')
     if(id==='bamboo'){
@@ -575,7 +597,7 @@ try{
       verify('第五式一键回到同景入席前，花材器物水量复位',empty.ritual.stage==='arrival'&&empty.ritual.sceneId===id&&empty.ritual.wish===''&&empty.history.present.vaseMl===0&&empty.history.present.cupMl===180&&empty.history.present.debris.length===0&&empty.history.present.flowers.every(f=>f.location==='cup'&&!f.removed.length)&&!empty.history.past.length)
       await button('取回刚才的作品')
       verify('即时取回可恢复完整作品和祝愿',JSON.stringify((await read()).history)===JSON.stringify(beforeEmpty.history)&&(await read()).ritual.wish===beforeEmpty.ritual.wish)
-      await button('直接完成');await button('恢复本来空');await page.reload();await button('继续上次花席');await button('开始插花');await button('进入备席')
+      await button('直接完成');await button('恢复本来空');await page.reload();await button('继续上次花席');await button('开始插花');await button('准备花材');await button('用这些花材开始备席')
       verify('恢复后刷新从空瓶开席',(await read()).history.present.vaseMl===0)
       await page.setViewportSize({width:390,height:844});await page.emulateMedia({reducedMotion:'reduce'})
       await button('完成备席');await button('略过注水')

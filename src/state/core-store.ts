@@ -50,7 +50,9 @@ export const useCoreStore=create<CoreStore>((set,get)=>{
     carriedProp:null,restartPreparation:()=>{
       const s=get()
       if(s.ritual?.stage!=='prepare'||s.blocked)return
-      save({present:ritualHistory().present,past:[...s.history.past,{state:s.history.present,label:'重新备席'}].slice(-HISTORY_LIMIT),future:[]})
+      const fresh=ritualHistory()
+      const initial={...fresh.present,...s.ritual.seat}
+      save({present:initial,past:[...s.history.past,{state:s.history.present,label:'重新备席'}].slice(-HISTORY_LIMIT),future:[]})
       set({epoch:s.epoch+1,carriedProp:null,heldId:null,selectedId:null,cupHeld:false,pourPhase:'carry',scissors:false,lastCommand:null,message:'重新备席，可以重新摆放器物。'})
     },
     vaseFocus:false,focusVase:on=>{
@@ -72,6 +74,11 @@ export const useCoreStore=create<CoreStore>((set,get)=>{
     },
     updateRitual:patch=>{
       const s=get();if(!s.ritual||s.blocked)return
+      if(s.ritual.stage==='materials'&&patch.stage==='prepare'){
+        const seat={flowers:s.history.present.flowers,nextId:s.history.present.nextId}
+        set({ritual:{...s.ritual,...patch,seat},message:'',epoch:s.epoch+1})
+        save({present:s.history.present,past:[],future:[]});return
+      }
       if(patch.stage&&['tidy','bless','return','done'].includes(patch.stage)&&!s.history.present.flowers.some(f=>f.location==='vase')){
         set({ritual:{...s.ritual,stage:'arrange',line:0},message:'先安放一枝花，再进入祝愿。',heldId:null,scissors:false,cupHeld:false,epoch:s.epoch+1})
         save(s.history);return
@@ -107,6 +114,7 @@ export const useCoreStore=create<CoreStore>((set,get)=>{
     dispatch:command=>{
       const s=get();if(s.blocked)return false
       if(s.ritual){
+        if(['set-materials','choose-cup-flowers','add'].includes(command.type)&&s.ritual.stage!=='materials')return false
         if((command.type==='restore-water'||command.type==='pour')&&s.ritual.stage!=='prepare')return false
         if(['insert','adjust','to-table','rotate'].includes(command.type)&&!canArrange(s.ritual))return false
         if(command.type==='place-flower'&&!canArrange(s.ritual)&&s.history.present.flowers.some(f=>f.id===command.id&&f.location==='vase'))return false

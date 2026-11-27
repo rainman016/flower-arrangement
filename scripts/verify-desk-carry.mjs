@@ -14,7 +14,7 @@ try{
   const ctx=await browser.newContext({viewport:{width:1000,height:590},recordVideo:{dir:tmpdir(),size:{width:1000,height:590}}}),page=await ctx.newPage()
   const errors=[];page.on('pageerror',e=>errors.push(e.message))
   await page.addInitScript(()=>{window.flowerCoreReview=true})
-  await page.goto(url.href);await page.getByRole('button',{name:'竹林清风',exact:true}).click();await page.getByRole('button',{name:'开始插花',exact:true}).click({timeout:60000});await page.getByRole('button',{name:'进入备席'}).click()
+  await page.goto(url.href);await page.getByRole('button',{name:'竹林清风',exact:true}).click();await page.getByRole('button',{name:'开始插花',exact:true}).click({timeout:60000});await page.getByRole('button',{name:'准备花材'}).click();await page.getByRole('button',{name:'用这些花材开始备席'}).click()
   await page.waitForTimeout(550)
   const position=id=>page.evaluate(id=>{
     const a=window.__coreInspect,o=a.world.flowers.get(id)||a.world[id]

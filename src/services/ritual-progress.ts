@@ -1,12 +1,13 @@
 import type { History,SceneId } from '../game/types'
 import { BOX, CUP_START, SHEARS_START, VASE_START, migrateDesk } from '../game/desk-layout'
 import { CUP_FLOWERS, restoredScene } from '../content/catalog'
+import { isArrangement } from '../game/rules'
 import { initialHistory } from '../game/history'
 import { decodeCore, encodeCore } from './core-progress'
 
-export const STAGES=['arrival','opening','prepare','observe','trim','arrange','tidy','bless','return','done'] as const
+export const STAGES=['arrival','opening','materials','prepare','observe','trim','arrange','tidy','bless','return','done'] as const
 export type Stage=typeof STAGES[number]
-export type Ritual={sceneId:SceneId;stage:Stage;wish:string;line:number;arranging?:boolean;observed?:boolean}
+export type Ritual={sceneId:SceneId;stage:Stage;wish:string;line:number;arranging?:boolean;observed?:boolean;seat?:Pick<History['present'],'flowers'|'nextId'>}
 export const canArrange=(ritual:Ritual|null)=>!ritual||(ritual.stage==='arrange'&&ritual.arranging===true)
 export const RITUAL_KEY='yixihua:five-forms:v1'
 export const freshRitual=(sceneId:SceneId='bamboo'):Ritual=>({sceneId,stage:'arrival',wish:'',line:0})
@@ -28,6 +29,7 @@ export function decodeRitual(raw:string){
   if(!ritual||!STAGES.includes(ritual.stage)||!['bamboo','rain','creek'].includes(ritual.sceneId)||typeof ritual.wish!=='string'||ritual.wish.length>200||!Number.isInteger(ritual.line)||ritual.line<0||ritual.line>8)return
   const maxLine=ritual.stage==='opening'?3:['observe','trim','arrange','return'].includes(ritual.stage)?2:['bless','tidy'].includes(ritual.stage)?1:0
   if(ritual.line>maxLine||(ritual.observed!==undefined&&typeof ritual.observed!=='boolean')||(ritual.arranging!==undefined&&typeof ritual.arranging!=='boolean'))return
+  if(ritual.seat&&(!Array.isArray(ritual.seat.flowers)||!Number.isInteger(ritual.seat.nextId)||!isArrangement({...ritualHistory().present,...ritual.seat})||!ritual.seat.flowers.every(f=>f.location==='cup'&&!f.removed.length)))return
   if(['done','return','bless'].includes(ritual.stage)&&!history.present.flowers.some(f=>f.location==='vase'))return
   return {history:{present:migrateDesk(history.present),past:history.past.map(e=>({...e,state:migrateDesk(e.state)})),future:history.future.map(e=>({...e,state:migrateDesk(e.state)}))},ritual:{...ritual,sceneId:restoredScene(ritual.sceneId)}}
 }
