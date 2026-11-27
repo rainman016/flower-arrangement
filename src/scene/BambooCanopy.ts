@@ -104,8 +104,8 @@ export function bambooCanopy(root:Object3D,ground:HeightAt){
   // Overlapping middle boughs, rooted on both sides, leave the worn central track.
   for(let i=0;i<38;i++){
     const z=-7.4-random()*17,sign=i%2?-1:1,x=sign*(1.65+random()*6)
-    const a=attached(x,z,.64+random()*.96),angle=Math.atan2((random()-.5)*1.3,-sign)
-    fan(a,angle,1.2+random()*1.1,1,random()*6.28)
+    const a=attached(x,z,1.1+random()*2.5),angle=Math.atan2((random()-.5)*1.3,-sign)
+    fan(a,angle,1.4+random()*1.3,1,random()*6.28)
   }
   // Low coppice closes the bright feet of distant trunks, with different ridge heights.
   for(let i=0;i<52;i++){

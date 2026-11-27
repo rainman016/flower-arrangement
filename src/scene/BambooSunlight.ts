@@ -149,7 +149,7 @@ export function bambooSunResponse(shader:{vertexShader:string;fragmentShader:str
       float belly=${goldenLeaf?'bambooSunTissue':'(.68+.25*smoothstep(.06,.82,acrossBlade))*mix(.14,1.,smoothstep(.14,.36,bambooSunLeafAge))'};
       float throughBlade=abs(dot(surfaceFacing,localSunDirection));
       float towardSource=pow(max(0.,dot(normalize(woodlandSurface-cameraPosition),localSunDirection)),3.);
-      vec3 tissueFilter=diffuseColor.rgb*vec3(7.5,4.3,.75);
+      vec3 tissueFilter=diffuseColor.rgb*vec3(3.5,2.5,.65);
       outgoingLight+=tissueFilter*(.22+.78*throughBlade)*(.35+.65*towardSource)
         *(.30+.70*belly)*localSunVisibility*leafFocus;
       vec3 toAperture=normalize(bambooLightWindow-woodlandSurface);
@@ -161,10 +161,10 @@ export function bambooSunResponse(shader:{vertexShader:string;fragmentShader:str
       float leafPigment=dot(diffuseColor.rgb,vec3(.25,.65,.10));
       float bladeAlignment=.28+.72*smoothstep(.12,.84,throughBlade);
       float sprayLight=.5+.5*sin(woodlandSurface.x*2.5+woodlandSurface.z*1.6+sin(woodlandSurface.y*2.7));
-      vec3 transmittedPigment=vec3(1.65,1.05,.014)*(.055+.85*leafPigment);
-      outgoingLight+=transmittedPigment*6.4*softTransmission*bladeAlignment*(.55+.45*sprayLight)
+      vec3 transmittedPigment=vec3(1.35,1.10,.12)*(.025+.85*leafPigment);
+      outgoingLight+=transmittedPigment*2.2*softTransmission*bladeAlignment*(.55+.45*sprayLight)
         *(.72+.28*localSunVisibility)*(1.-.18*visibleMidrib)*leafFocus;
       // Short wavelengths are strongly absorbed through the blade's thicker belly.
-      outgoingLight*=mix(vec3(1.),vec3(1.035,.94,.20),clamp(leafFocus*(.54+.46*belly),0.,1.));`:''}
+      outgoingLight*=mix(vec3(1.),vec3(1.015,.99,.68),clamp(leafFocus*(.54+.46*belly),0.,1.));`:''}
     #include <opaque_fragment>`)
 }
