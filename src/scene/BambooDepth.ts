@@ -67,7 +67,7 @@ export function bambooMiddleGrove(root:Object3D,ground:HeightAt){
       let x=cx+Math.cos(bearing)*radius
       const z=cz+Math.sin(bearing)*radius,center=bambooPathCenter(z),clearance=z> -25?.82:.44
       if(Math.abs(x-center)<clearance)x=center+Math.sign(cx)*(clearance+.22*random())
-      const stem=new Object3D(),width=.42+.38*random(),height=.18+.27*random()
+      const stem=new Object3D(),width=.42+.38*random(),height=z< -14?.35+.30*random():.18+.27*random()
       stem.name='bamboo_regrowth_'+planted;stem.userData.prototype='grove_'+planted%3
       stem.position.set(x,ground(x,z)-.065,z)
       stem.rotation.set((random()-.5)*.19,random()*Math.PI*2,(random()-.5)*.22)

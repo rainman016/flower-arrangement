@@ -10,7 +10,7 @@ import {canopyLight,forestSun} from './CanopyLight'
 import {lowWoodlandQuality} from './render-quality'
 
 const LOOKS = {
-  bamboo: {key:4.8,color:'#ffe4a4',sky:'#cad9d4',ground:'#465036',exposure:.91,fog:'#97adae',near:8.4,far:65},
+  bamboo: {key:4.8,color:'#ffe4b1',sky:'#d5dec1',ground:'#465036',exposure:.91,fog:'#8e9c78',near:10.5,far:65},
   rain: {key:2.0,color:'#d8e8ed',sky:'#bfd4d9',ground:'#384936',exposure:.99,fog:'#9aadae',near:5.6,far:36},
   creek: {key:5.15,color:'#ffe2a5',sky:'#cddcda',ground:'#46553c',exposure:.96,fog:'#a0b6b7',near:7.8,far:66},
 }
@@ -62,13 +62,13 @@ export default function SceneLighting({sceneId,light}:{sceneId:SceneId;light:Tex
   },[scene,gl,light,look,sky,sceneId,invalidate])
   return <>
     <PropContactShadows sceneId={sceneId}/>
-    <hemisphereLight args={[look.sky,look.ground,sceneId==='rain'?.43:.29]}/>
+    <hemisphereLight args={[look.sky,look.ground,sceneId==='rain'?.43:sceneId==='bamboo'?.38:.29]}/>
     <primitive object={clearing}/>
     <primitive object={workSurface}/>
     {sceneId!=='rain'&&<>
       <primitive object={sunPatch}/>
       <spotLight name={sceneId==='bamboo'?'bamboo_gap_sun':undefined} position={sceneId==='bamboo'?[-8.15,4.76,-15.1]:[-5.6,5,-7.4]} target={sunPatch} angle={sceneId==='bamboo'?.28:.40} penumbra={.62}
-        map={canopy} color={sceneId==='bamboo'?'#ffdfa0':'#ffedb4'} intensity={sceneId==='bamboo'?1280:570} distance={30}/>
+        map={canopy} color={sceneId==='bamboo'?'#ffdfa0':'#ffedb4'} intensity={sceneId==='bamboo'?440:570} distance={30}/>
     </>}
     {sceneId==='rain'?<spotLight position={[-1.40,1.86,-.65]} target={workSurface} angle={.52} penumbra={.57}
       color="#ffedce" intensity={10} castShadow shadow-mapSize={lowWoodlandQuality?[768,768]:[1536,1536]}

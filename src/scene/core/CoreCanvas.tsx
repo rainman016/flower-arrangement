@@ -13,8 +13,9 @@ import type { SceneAssets } from '../../services/scene-assets'
 import { useCoreStore } from '../../state/core-store'
 import NatureEnvironment from '../NatureEnvironment'
 import SceneLighting from '../SceneLighting'
-import {lowWoodlandQuality,startingPixelRatio} from '../render-quality'
+import {startingPixelRatio} from '../render-quality'
 import {InteractionResolution} from './InteractionResolution'
+import {SceneWarmup} from './SceneWarmup'
 import PropGlass from '../PropGlass'
 import { SceneMotion } from '../motion/SceneMotion'
 import { centerObject, createPiece, createPlant, disposeGeometry } from './botanical-geometry'
@@ -305,7 +306,7 @@ function Contents({assets,onReady,onWorld,onExport,contextRef}:CanvasProps) {
     let portraits:ReturnType<typeof flowerPortraits>|undefined
     world.portraits=()=>portraits??=flowerPortraits(gl,assets.kit.scene)
     world.sampleFlower=choice=>flowerPortraits(gl,assets.kit.scene,choice)[choice.kind]
-    onReady();onWorld(world)
+    onWorld(world)
     if(import.meta.env.DEV||Boolean((globalThis as {flowerCoreReview?:boolean}).flowerCoreReview))Object.assign(window,{__coreInspect:{scene,camera,renderer:gl,Vector3,Box3,Raycaster,world,read:()=>({history:useCoreStore.getState().history,ritual:useCoreStore.getState().ritual,cupHeld:useCoreStore.getState().cupHeld,held:useCoreStore.getState().heldId,selected:useCoreStore.getState().selectedId,tool:useCoreStore.getState().scissors,active:world.active})}})
     onExport((wish)=>{
       const state=useCoreStore.getState()
@@ -414,11 +415,12 @@ function Contents({assets,onReady,onWorld,onExport,contextRef}:CanvasProps) {
     </group>
     <CoreControls world={world} kit={assets.kit.scene}/>
     {work.tools&&<RitualControls world={world}/>}
+    <SceneWarmup identity={assets.environment} onReady={onReady}/>
   </>
 }
 export default function CoreCanvas(props:CanvasProps) {
   return <Canvas shadows={{type:PCFShadowMap}} frameloop="demand" dpr={startingPixelRatio(window.innerWidth,window.innerHeight,window.devicePixelRatio)} camera={{position:TABLE_VIEW.eye,fov:TABLE_VIEW.desktopFov,near:.015,far:60}}
-    gl={{antialias:!lowWoodlandQuality,toneMapping:AgXToneMapping,preserveDrawingBuffer:true}} fallback={<p role="alert">浏览器暂不支持三维显示，请启用硬件加速。</p>}>
+    gl={{antialias:true,toneMapping:AgXToneMapping,preserveDrawingBuffer:true}} fallback={<p role="alert">浏览器暂不支持三维显示，请启用硬件加速。</p>}>
     <SceneMotion><Contents {...props}/></SceneMotion>
   </Canvas>
 }

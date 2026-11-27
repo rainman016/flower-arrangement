@@ -362,6 +362,14 @@ export function detailForestFloor(root:Object3D,kit:Object3D,heightAt:HeightAt,i
     }
     if(openPath&&['fern','understory','ground_herb_0','ground_herb_1','sedge_0','sedge_1'].includes(kind)){
       const p=node.getWorldPosition(point)
+      // Keep the roadside vegetation below the eye line and leave breaks in
+      // the near shoulders, preserving each plant's rooted placement.
+      if(p.z> -5.3&&p.z< -.9){
+        if(kind==='understory')node.scale.multiplyScalar(.68)
+        else if(kind.startsWith('ground_herb_'))node.scale.multiplyScalar(.78)
+        else if(kind==='fern')node.scale.multiplyScalar(.92)
+        node.updateMatrixWorld(true)
+      }
       if(p.x>1.08&&p.x<2.34&&p.z> -4.04&&p.z< -2.54){
         if(kind==='ground_herb_0'||kind==='ground_herb_1'){
           const sign=p.x<1.65?-1:1

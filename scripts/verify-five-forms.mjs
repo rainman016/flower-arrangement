@@ -299,8 +299,18 @@ try{
     verify('一段连续倒水一次完整撤销',(await read()).history.present.vaseMl===0)
     await page.keyboard.press('Control+Shift+z');await wait(100)
     verify('重做恢复杯瓶水量',(await read()).history.present.vaseMl===water)
-    const cupGrip=await pos('cup',[0,.035,0]),[cupSite]=await deskMouseTargets(page,'cup',cupGrip,[[-.075,-.18]])
+    // The pour camera eases back independently of the history update. Project
+    // mouse coordinates only once the visible camera has settled, also on iGPUs.
+    await page.evaluate(()=>{delete window.__deskCameraProbe})
+    await page.waitForFunction(()=>{
+      const camera=window.__coreInspect.camera,key=camera.matrixWorld.elements.map(v=>Math.round(v*1e6)).join(',')
+      const previous=window.__deskCameraProbe
+      window.__deskCameraProbe={key,frames:previous?.key===key?previous.frames+1:0}
+      return window.__deskCameraProbe.frames>=3
+    })
+    const cupGrip=await pos('cup',[0,.035,0])
     await click(cupGrip);await wait(100)
+    const [cupSite]=await deskMouseTargets(page,'cup',cupGrip,[[-.075,-.18]])
     await click(cupSite);await wait(100)
     verify('杯子放回所指盒内位置',!(await read()).cupHeld&&Math.abs((await read()).history.present.tools.cup[2]+.18)<.014)
     await button('完成备席');await wait(150);await checkRail()
@@ -636,6 +646,6 @@ try{
     if(video){await video.saveAs(resolve(dir,'bamboo-journey.webm'));await video.delete()}
   }
   await writeFile(resolve(dir,process.argv[2]?'review-'+process.argv[2]+'.json':'verification.json'),JSON.stringify({verifiedAt:new Date().toISOString(),browser:browser.version(),viewport:[1440,900],build:JSON.parse(await readFile(resolve(dir,'build.json'),'utf8')).sha256,reports},null,2))
-}catch(e){console.error('FAILED',current,e);if(page&&!page.isClosed()){console.log(await page.locator('body').innerText().catch(()=>''));await page.screenshot({path:resolve(dir,'diagnostic.png')}).catch(()=>{})}process.exitCode=1}
+}catch(e){console.error('FAILED',current,e);if(page&&!page.isClosed()){console.log(await page.locator('body').innerText().catch(()=>''));await writeFile(resolve(dir,'diagnostic-state.json'),JSON.stringify(await page.evaluate(()=>window.__coreInspect?.read()).catch(()=>null),null,2));await page.screenshot({path:resolve(dir,'diagnostic.png')}).catch(()=>{})}process.exitCode=1}
 finally{await browser.close()}
 

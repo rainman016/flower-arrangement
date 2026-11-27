@@ -1,4 +1,4 @@
-import { Vector3, BufferAttribute, BufferGeometry, DoubleSide, MeshBasicMaterial, NearestFilter, OrthographicCamera, PlaneGeometry, Group, Mesh, ShaderMaterial, SRGBColorSpace, TextureLoader } from 'three'
+import { Vector2, Vector3, BufferAttribute, BufferGeometry, DoubleSide, MeshBasicMaterial, NearestFilter, OrthographicCamera, PlaneGeometry, Group, Mesh, ShaderMaterial, SRGBColorSpace, TextureLoader } from 'three'
 
 import { captureFaces, distanceShell } from './distance-shell'
 
@@ -77,7 +77,7 @@ export async function loadDistanceSurface(url:string){
     geometry.setAttribute('position',new BufferAttribute(positions,3))
     geometry.setAttribute('captureUv',new BufferAttribute(captureUv,3))
     geometry.setIndex(indices)
-    const material=new ShaderMaterial({defines:metres?{CAPTURE_DEPTH:1}:{},uniforms:{captureOrigin:{value:origin},image:{value:texture},depthMap:{value:metres}},side:DoubleSide,toneMapped:false,
+    const material=new ShaderMaterial({defines:metres?{CAPTURE_DEPTH:1}:{},uniforms:{captureOrigin:{value:origin},image:{value:texture},depthMap:{value:metres},depthTexel:{value:new Vector2(1/(metres?.image.width??1),1/(metres?.image.height??1))}},side:DoubleSide,toneMapped:false,alphaToCoverage:true,
       vertexShader:`attribute vec3 captureUv;uniform vec3 captureOrigin;
         varying vec3 fromCapture;varying vec4 depthProjection;
         void main(){
@@ -89,18 +89,29 @@ export async function loadDistanceSurface(url:string){
           #endif
           gl_Position=projectionMatrix*viewPoint;
         }`,
-      fragmentShader:`uniform sampler2D image,depthMap;varying vec3 fromCapture;varying vec4 depthProjection;
+      fragmentShader:`uniform sampler2D image,depthMap;uniform vec2 depthTexel;varying vec3 fromCapture;varying vec4 depthProjection;
+        float capturedMetres(vec2 uv){return dot(texture2D(depthMap,uv).rg,vec2(255.,65280.))*.01;}
         void main(){
           vec2 uv=fromCapture.xy/fromCapture.z;
-          vec4 colour=texture2D(image,uv);if(colour.a<.40)discard;
+          vec4 colour=texture2D(image,uv);if(colour.a<.08)discard;
           #ifdef CAPTURE_DEPTH
-          vec2 packedDepth=texture2D(depthMap,uv).rg;
-          float metres=dot(packedDepth,vec2(255.,65280.))*.01;
+          float metres=capturedMetres(uv);
+          // Filtered colour covers a fraction of the boundary texel while its
+          // nearest depth may be sky. Keep that coverage with a measured adjacent
+          // surface; never interpolate the packed depth bytes across silhouettes.
+          if(metres<.01){
+            float nearest=101.;
+            for(int y=-1;y<=1;y+=2)for(int x=-1;x<=1;x+=2){
+              float d=capturedMetres(uv+vec2(float(x),float(y))*depthTexel*.75);
+              if(d>.01)nearest=min(nearest,d);
+            }
+            metres=nearest>100.?0.:nearest;
+          }
           float eyeZ=depthProjection.y+depthProjection.x/fromCapture.z*metres;
           if(metres<.01||eyeZ>=0.)discard;
           gl_FragDepth=.5-.5*(depthProjection.z+depthProjection.w/eyeZ);
           #endif
-          gl_FragColor=vec4(colour.rgb,1.);
+          gl_FragColor=colour;
           #include <colorspace_fragment>
         }`})
     const mesh=new Mesh(geometry,material);mesh.raycast=()=>{};return mesh

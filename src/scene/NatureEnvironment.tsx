@@ -764,7 +764,7 @@ export default function NatureEnvironment({model,kit,sceneId,floor,bankAtlas,dis
                     float foliation=rockPosition.x*59.-rockPosition.y*28.+rockPosition.z*15.
                       +.84*sin(12.*rockPosition.y+8.*rockPosition.z)+.45*grainPit;
                     float flake=smoothstep(.40,.93,sin(foliation))*(.12+.74*grainPit);
-                    exposed=mix(vec3(.035,.041,.040),vec3(.095,.107,.105),.53*grain+.31*crystal+.16*ledge);
+                    exposed=mix(vec3(.052,.056,.045),vec3(.140,.150,.125),.53*grain+.31*crystal+.16*ledge);
                     exposed*=(.80+.31*ledge)*(.89+.34*grainPit+.17*flake);
                     float polish=smoothstep(.002,.024,outcropSurface.y)*(1.-growth)*(.78+.22*grainPit);
                     exposed*=1.-.12*polish;
@@ -854,9 +854,10 @@ export default function NatureEnvironment({model,kit,sceneId,floor,bankAtlas,dis
           }
           if(openBambooPath&&(lamina||o.name.includes('forest_fern_')||o.name==='bamboo_verge_grass')){
             m.emissive.setRGB(0,0,0);m.roughness=lamina?.81:.91;m.envMapIntensity=lamina?.36:.28
+            if(lamina)m.color.setRGB(.77,.90,.72)
             if(o.name.includes('forest_fern_'))m.color.multiply(new Color().setRGB(.84,.92,.63))
           }
-          if(openBambooPath&&o.userData.bambooSunLeaf){m.color.setRGB(1,1,1);m.emissive.setRGB(0,0,0);m.roughness=.78;m.envMapIntensity=.25;m.alphaTest=0}
+          if(openBambooPath&&o.userData.bambooSunLeaf){m.color.setRGB(.77,.90,.72);m.emissive.setRGB(0,0,0);m.roughness=.78;m.envMapIntensity=.25;m.alphaTest=0}
           if(composed&&o.name.startsWith('bryophyte_')){
             m.color.setRGB(1.08,1.37,.90);m.roughness=.94
           }
