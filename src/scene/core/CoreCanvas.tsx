@@ -27,7 +27,7 @@ import CoreControls from './CoreControls'
 import { SeatCloth } from './SeatCloth'
 import { flowerPortraits } from './flower-portraits'
 import type { FlowerKind } from '../../game/types'
-import { BOX } from '../../game/desk-layout'
+import { BOX, DESK, WOOD_FRONT } from '../../game/desk-layout'
 import { deskView, localBounds, propRotation } from './desk-space'
 import { flowerOutline, flowerShadowGeometry, flowerSupport, releaseRestShape, restFlower } from './flower-rest'
 import { registerFlowerShadow } from '../PropContactShadows'
@@ -194,6 +194,8 @@ function PieceObject({debris,kit,world}:{debris:Debris;kit:Object3D;world:CoreWo
   },[debris.id,world])
   return <group ref={ref} name={'core-debris-'+debris.id}><primitive object={object} dispose={null}/></group>
 }
+const workingTableDepth = (DESK.front - DESK.back) / (WOOD_FRONT - DESK.back)
+
 function Tools({assets,world}:{assets:SceneAssets;world:CoreWorld}) {
   const scissorsHeld=useCoreStore(s=>s.scissors),serial=useCoreStore(s=>s.serial),work=useCoreStore(s=>s.history.present),epoch=useCoreStore(s=>s.epoch)
   const cutting=useCoreStore(s=>s.ritual?.stage==='trim'&&!!s.heldId&&s.scissors)
@@ -280,7 +282,12 @@ function Tools({assets,world}:{assets:SceneAssets;world:CoreWorld}) {
     models.scissors.getObjectByName('scissors_half_1')!.rotation.y=opening
   })
   return <>
-    <group ref={supportRef} userData={{role:'table'}}><primitive object={models.table} dispose={null}/>{work.tools&&<SeatCloth/>}</group>
+    <group ref={supportRef} userData={{role:'table'}}>
+      <primitive object={models.table} dispose={null}
+        scale={[1,1,work.tools ? workingTableDepth : 1]}
+        position={[0,0,work.tools ? DESK.back * (1 - workingTableDepth) : 0]}/>
+      {work.tools && <SeatCloth/>}
+    </group>
     <primitive object={models.tray} position={[0,.761,work.tools?BOX.z:0]} scale={work.tools?[BOX.scaleX,1,BOX.scaleZ]:[1,1,1]} userData={{role:'table'}} dispose={null}/>
     <group ref={o=>{world.vase=o}} name="core-vase" position={[work.vase.x,work.tools?.vaseY??BASE_Y,work.vase.z-.025]} quaternion={propRotation(work,'vase')} userData={{role:'vase'}}>
       <primitive object={models.vase} dispose={null}/>
