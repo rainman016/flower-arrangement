@@ -58,7 +58,12 @@ export function woodlandSky(scene:SceneId){
       data[i+2]=DataUtils.toHalfFloat(base.b);data[i+3]=DataUtils.toHalfFloat(1)
     }
   }
-  const texture=new DataTexture(data,width,height,RGBAFormat,HalfFloatType)
+  return woodlandSkyTexture(scene,data)
+}
+
+export function woodlandSkyTexture(scene:SceneId,data:Uint16Array){
+  if(data.length!==768*384*4)throw Error('天空数据尺寸无效')
+  const texture=new DataTexture(data,768,384,RGBAFormat,HalfFloatType)
   texture.name='Woodland daylight | '+scene;texture.colorSpace=LinearSRGBColorSpace
   texture.mapping=EquirectangularReflectionMapping;texture.wrapS=RepeatWrapping
   texture.magFilter=texture.minFilter=LinearFilter;texture.needsUpdate=true

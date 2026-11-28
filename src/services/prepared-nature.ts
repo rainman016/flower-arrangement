@@ -1,7 +1,7 @@
 import {preparedImagesReady} from './prepared-images'
 import {loadCachedAsset} from './cached-asset'
 import {prepareTextureBitmaps} from './prepared-bitmaps'
-import {Texture} from 'three'
+import {Texture,ImageBitmapLoader} from 'three'
 import {runtimeMark} from './runtime-timing'
 import {decodePreparedData} from './prepared-binary'
 import {Color,CustomBlending,Matrix3,Matrix4,Mesh,LoadingManager,ObjectLoader,OneFactor,OneMinusSrcAlphaFactor,OrthographicCamera,ShaderMaterial,SrcAlphaFactor,Vector2,Vector3,Vector4,Quaternion,ZeroFactor,type Group} from 'three'
@@ -38,10 +38,18 @@ export async function loadPreparedNature(url:string,resolveAsset?:(id:string)=>s
   const images=loader.parseImages((json.images??[]).filter((image:any)=>!external.includes(image)))
   const decoded=preparedImagesReady(images)
   const imageLoads=new Map<unknown,Promise<void>>()
+  const imageBitmaps=new Map<unknown,ImageBitmap>()
   const pending=external.map((entry:any)=>{
     const image=document.createElementNS('http://www.w3.org/1999/xhtml','img') as HTMLImageElement
     images[entry.uuid]=new Texture(image).source
-    const loaded=loadCachedAsset(entry.url,async url=>{image.src=url;await preparedImagesReady({image:{data:image}})})
+    const loaded=loadCachedAsset(entry.url,async url=>{
+      if(typeof createImageBitmap==='function'){
+        const bitmap=await new ImageBitmapLoader().setOptions({imageOrientation:'none',premultiplyAlpha:'none',colorSpaceConversion:'none'}).loadAsync(url)
+        imageBitmaps.set(image,bitmap)
+        if(!(globalThis as {flowerUploadReview?:boolean}).flowerUploadReview)return
+      }
+      image.src=url;await preparedImagesReady({image:{data:image}})
+    })
     imageLoads.set(image,loaded);return loaded
   })
   const imagesReady=Promise.all([decoded,...pending]).then(()=>{})
@@ -49,9 +57,10 @@ export async function loadPreparedNature(url:string,resolveAsset?:(id:string)=>s
   void ready.catch(()=>{})
   try{
     const textures=loader.parseTextures(json.textures,images),materials=loader.parseMaterials(json.materials,textures)
-    const uploads=prepareTextureBitmaps(textures,image=>imageLoads.get(image)??decoded)
+    const uploads=prepareTextureBitmaps(textures,image=>imageLoads.get(image)??decoded,image=>imageBitmaps.get(image)??image)
     ready=Promise.all([imagesReady,...uploads.values()]).then(()=>{});void ready.catch(()=>{})
     void ready.finally(()=>urls.forEach(url=>URL.revokeObjectURL(url))).catch(()=>{})
+    void ready.then(()=>{const retained=new Set(Object.values(textures).map(texture=>texture.image));for(const bitmap of imageBitmaps.values())if(!retained.has(bitmap))bitmap.close()}).catch(()=>{})
     const uniform=(value:any):any=>{
       if(Array.isArray(value))return value.map(uniform)
       if(value?.$texture){const texture=textures[value.$texture];if(!texture)throw Error('环境纹理缺失');return texture}

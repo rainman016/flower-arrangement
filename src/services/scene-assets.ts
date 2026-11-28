@@ -7,7 +7,7 @@ import {lowWoodlandQuality} from '../scene/render-quality'
 import {loadDistanceSurface} from '../scene/distance-surface'
 import {loadPreparedNature,type PreparedNature} from './prepared-nature'
 import {runtimeMark} from './runtime-timing'
-import {woodlandSky} from '../scene/WoodlandSky'
+import {loadGeneratedSky} from './generated-sky'
 import {loadCachedAsset} from './cached-asset'
 import type { SceneId } from '../game/types'
 type SceneAssetBase={kit:GLTF;natureKit:Pick<GLTF,'scene'>;environment:Pick<GLTF,'scene'>;sceneId:SceneId;light:Texture;sky:Texture}
@@ -39,7 +39,7 @@ export async function loadSceneAssets(sceneId:SceneId,overlapTextures=false):Pro
   runtimeMark('assets-start')
   // Start fixed sky computation while the selected scene's network requests run.
   // Lighting clones the texture; its CPU pixels are shared and never recomputed.
-  if(!skies.has(sceneId))skies.set(sceneId,new Promise<void>(resolve=>setTimeout(resolve,0)).then(()=>woodlandSky(sceneId)).catch(error=>{skies.delete(sceneId);throw error}))
+  if(!skies.has(sceneId))skies.set(sceneId,new Promise<void>(resolve=>setTimeout(resolve,0)).then(()=>loadGeneratedSky(sceneId)).catch(error=>{skies.delete(sceneId);throw error}))
   const skyReady=skies.get(sceneId)!
   kit??=loadCachedAsset(assetUrl('prop-kit'),url=>new GLTFLoader().loadAsync(url)).catch(e=>{kit=undefined;throw e})
   lightAsset??=loadCachedAsset(assetUrl('woodland-light'),url=>new HDRLoader().loadAsync(url)).then(light=>{
