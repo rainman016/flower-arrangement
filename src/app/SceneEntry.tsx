@@ -32,12 +32,22 @@ export default function SceneEntry({ hasSave }: { hasSave: boolean }) {
       if(assets.prepared){
         // Compile while image requests are in flight. If one fails, swap to the
         // source loader before the loading screen is dismissed.
-        assets.prepared.ready=assets.prepared.ready.catch(async()=>{
-          const fallback=await import('../services/scene-assets').then(module=>module.loadSceneAssets(id))
-          setSession({Game:game.default,assets:fallback})
-          await new Promise(requestAnimationFrame)
+        const recovered=assets.prepared.ready.catch(async()=>{
+          try{
+            const fallback=await import('../services/scene-assets').then(module=>module.loadSceneAssets(id))
+            setSession({Game:game.default,assets:fallback})
+          }catch{
+            setSession(null);busy.current=false;setLoading(null)
+            setError('花席未能载入。请检查网络，再点一次场景重试。')
+          }
+          // This failed generation must never resume uploading/drawing. Its
+          // replacement owns a fresh readiness promise; unmount releases this one.
+          return new Promise<void>(()=>{})
         })
-        void assets.prepared.ready.catch(()=>{})
+        assets.prepared.ready=recovered
+        // Per-texture upload jobs must wait for the same fallback. Otherwise a
+        // missing optional image throws into Canvas before its replacement mounts.
+        assets.prepared.uploads=new Map([...assets.prepared.uploads].map(([texture,ready])=>[texture,ready.catch(()=>recovered)]))
       }
       setSession({ Game: game.default, assets })
     } catch {
