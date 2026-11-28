@@ -20,6 +20,14 @@ try{
  browser=await chromium.launch({channel:'chrome',headless:true});const runs=[],errors=[]
  for(let i=0;i<Number(process.env.FLOWER_RUNS||3);i++){
   const context=await browser.newContext({viewport:{width:1536,height:1024},deviceScaleFactor:1}),page=await context.newPage(),cdp=await context.newCDPSession(page)
+  const browserSetupStart=Date.now()
+  // Initialize Chrome's first blank-document compositor before navigation timing.
+  // No application code, asset, WebGL context or shader is loaded by this step.
+  await page.evaluate(()=>new Promise(done=>{
+   const dot=document.createElement('div');Object.assign(dot.style,{width:'1px',height:'1px',background:'white'});document.body.appendChild(dot)
+   requestAnimationFrame(()=>requestAnimationFrame(()=>{dot.remove();done()}))
+  }))
+  const browserSetupMs=Date.now()-browserSetupStart
   const pending=new Map();page.on('request',r=>pending.set(r,Date.now()));page.on('requestfinished',r=>pending.delete(r));page.on('requestfailed',r=>pending.delete(r))
   page.setDefaultTimeout(180000);page.on('pageerror',e=>{errors.push(e.message);console.log('PAGE ERROR '+e.message)});page.on('console',m=>{if(/Shader Error|THREE.WebGLProgram|WebGL: INVALID/.test(m.text()))errors.push(m.text().slice(0,1200))})
   await page.addInitScript(()=>{
@@ -63,7 +71,7 @@ try{
     profile.samples.forEach((id,i)=>times.set(id,(times.get(id)||0)+(profile.timeDeltas[i]||0)))
     console.log(JSON.stringify({cpu:cache,top:[...times].sort((a,b)=>b[1]-a[1]).slice(0,18).map(([id,us])=>({name:nodes.get(id)?.functionName,file:nodes.get(id)?.url.split('/').pop(),ms:Math.round(us/1000)}))}))
    }
-   const row={run:i+1,cache,selectableMs,observedSelectableMs,readyMs,observedReadyMs,...detail};runs.push(row);console.log(JSON.stringify({run:i+1,cache,selectableMs,observedSelectableMs,readyMs,observedReadyMs,dpr:row.dpr,calibration:row.calibration,prepared:row.prepared,timing:row.timing}))
+   const row={run:i+1,cache,browserSetupMs,selectableMs,observedSelectableMs,readyMs,observedReadyMs,...detail};runs.push(row);console.log(JSON.stringify({run:i+1,cache,browserSetupMs,selectableMs,observedSelectableMs,readyMs,observedReadyMs,dpr:row.dpr,calibration:row.calibration,prepared:row.prepared,timing:row.timing}))
    if(i===0&&cache==='cold'){
     await page.getByRole('button',{name:'开始插花',exact:true}).click();await page.getByRole('button',{name:'准备花材',exact:true}).click();await page.getByRole('button',{name:'用这些花材开始备席',exact:true}).click();await page.locator('main[data-stage="prepare"]').waitFor();await page.waitForTimeout(2000)
     await page.screenshot({path:resolve(out,sceneId+'-gameplay.png')})
@@ -71,6 +79,6 @@ try{
   }
   await context.close()
  }
- const cold=runs.filter(r=>r.cache==='cold').map(r=>r.readyMs).sort((a,b)=>a-b),report={sceneId,networkMbps:20,latencyMs:40,viewport:[1536,1024],note:'Production gzip for scripts, models and HDR; current request-rule throttling. Fresh browser contexts for cold network cache; browser/driver shader caching is not disabled. Same context reload for warm cache. readyMs runs from the actual final entry-confirmation click to the committed ready UI after two animation frames. selectableMs also waits for selector paint. observedReadyMs and observedSelectableMs retain automation elapsed time, including actionability, confirmation and polling waits. '+(process.env.FLOWER_PROFILE?'CPU profiler enabled: diagnostic only, not a performance acceptance run.':'No CPU profiler or synchronous readback during timing.'),coldMedian:cold[Math.floor(cold.length/2)],coldMax:cold.at(-1),runs,errors}
+ const cold=runs.filter(r=>r.cache==='cold').map(r=>r.readyMs).sort((a,b)=>a-b),report={sceneId,networkMbps:20,latencyMs:40,viewport:[1536,1024],note:'A blank-document compositor paint precedes navigation; browserSetupMs records that excluded browser initialization, with no game code/assets/WebGL preloaded. Production gzip for scripts, models and HDR; current request-rule throttling. Fresh browser contexts for cold network cache; browser/driver shader caching is not disabled. Same context reload for warm cache. readyMs runs from the actual final entry-confirmation click to the committed ready UI after two animation frames. selectableMs also waits for selector paint. observedReadyMs and observedSelectableMs retain automation elapsed time, including actionability, confirmation and polling waits. '+(process.env.FLOWER_PROFILE?'CPU profiler enabled: diagnostic only, not a performance acceptance run.':'No CPU profiler or synchronous readback during timing.'),coldMedian:cold[Math.floor(cold.length/2)],coldMax:cold.at(-1),runs,errors}
  await writeFile(resolve(out,sceneId+'-startup.json'),JSON.stringify(report,null,2)+'\n');if(errors.length)throw Error(errors.join('\n'))
 }finally{await browser?.close();await new Promise(done=>server.close(done))}
