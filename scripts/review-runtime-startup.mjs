@@ -24,6 +24,15 @@ try{
   page.setDefaultTimeout(180000);page.on('pageerror',e=>{errors.push(e.message);console.log('PAGE ERROR '+e.message)});page.on('console',m=>{if(/Shader Error|THREE.WebGLProgram|WebGL: INVALID/.test(m.text()))errors.push(m.text().slice(0,1200))})
   await page.addInitScript(()=>{
    globalThis.flowerCoreReview=true;globalThis.flowerLoadingImages=[]
+   globalThis.flowerReadyAt=0
+   // Timestamp the actual committed ready UI and a completed paint, rather
+   // than the later Playwright selector polling response. Keep both readings.
+   const readyObserver=new MutationObserver(()=>{
+    if(!document.querySelector('main[data-core-ready="true"]'))return
+    readyObserver.disconnect()
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{globalThis.flowerReadyAt=Date.now()}))
+   })
+   readyObserver.observe(document,{subtree:true,childList:true,attributes:true,attributeFilter:['data-core-ready']})
    const create=document.createElementNS.bind(document)
    document.createElementNS=(ns,name,...args)=>{const element=create(ns,name,...args);if(name==='img')flowerLoadingImages.push(new WeakRef(element));return element}
   })
@@ -35,7 +44,8 @@ try{
     const failure={errors,pending:[...pending].map(([r,t])=>({file:r.url().split('/').pop(),ms:Date.now()-t})),state:await page.evaluate(()=>({text:document.body.innerText.slice(-1000),timing:window.__coreInspect?.scene.userData.runtimeTimings,programs:window.__coreInspect?.renderer.info.programs.length,images:flowerLoadingImages.map(ref=>ref.deref()).filter(Boolean).filter(i=>!i.complete||!i.naturalWidth).map(i=>({file:i.src.startsWith('data:')?'embedded':i.src.split('/').pop(),complete:i.complete,width:i.naturalWidth})),resources:performance.getEntriesByType('resource').slice(-6).map(r=>({file:r.name.split('/').pop(),ms:r.duration}))}))}
     await writeFile(resolve(out,sceneId+'-failure.json'),JSON.stringify(failure,null,2));console.log(JSON.stringify(failure));throw error
    })
-   const readyMs=Date.now()-selection,detail=await page.evaluate(()=>{
+   await page.waitForFunction(()=>globalThis.flowerReadyAt>0)
+   const observedReadyMs=Date.now()-selection,readyMs=await page.evaluate(()=>globalThis.flowerReadyAt)-selection,detail=await page.evaluate(()=>{
     const {renderer,scene}=window.__coreInspect,gl=renderer.getContext(),ext=gl.getExtension('WEBGL_debug_renderer_info')
     return {marks:performance.getEntriesByType('mark').filter(m=>m.name.startsWith('flower:')).map(m=>({name:m.name,ms:m.startTime})),programs:scene.userData.runtimePrograms,timing:scene.userData.runtimeTimings,calibration:scene.userData.runtimeCalibration,dpr:renderer.getPixelRatio(),gpu:ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER),prepared:scene.getObjectByName('nature_environment').userData.preparedNature===true,resources:performance.getEntriesByType('resource').filter(r=>!r.name.startsWith('blob:')).map(r=>({file:r.name.split('/').pop(),bytes:r.transferSize,duration:r.duration}))}
    })
@@ -45,7 +55,7 @@ try{
     profile.samples.forEach((id,i)=>times.set(id,(times.get(id)||0)+(profile.timeDeltas[i]||0)))
     console.log(JSON.stringify({cpu:cache,top:[...times].sort((a,b)=>b[1]-a[1]).slice(0,18).map(([id,us])=>({name:nodes.get(id)?.functionName,file:nodes.get(id)?.url.split('/').pop(),ms:Math.round(us/1000)}))}))
    }
-   const row={run:i+1,cache,selectableMs,readyMs,...detail};runs.push(row);console.log(JSON.stringify({run:i+1,cache,selectableMs,readyMs,dpr:row.dpr,calibration:row.calibration,prepared:row.prepared,timing:row.timing}))
+   const row={run:i+1,cache,selectableMs,readyMs,observedReadyMs,...detail};runs.push(row);console.log(JSON.stringify({run:i+1,cache,selectableMs,readyMs,observedReadyMs,dpr:row.dpr,calibration:row.calibration,prepared:row.prepared,timing:row.timing}))
    if(i===0&&cache==='cold'){
     await page.getByRole('button',{name:'开始插花',exact:true}).click();await page.getByRole('button',{name:'准备花材',exact:true}).click();await page.getByRole('button',{name:'用这些花材开始备席',exact:true}).click();await page.locator('main[data-stage="prepare"]').waitFor();await page.waitForTimeout(2000)
     await page.screenshot({path:resolve(out,sceneId+'-gameplay.png')})
@@ -53,6 +63,6 @@ try{
   }
   await context.close()
  }
- const cold=runs.filter(r=>r.cache==='cold').map(r=>r.readyMs).sort((a,b)=>a-b),report={sceneId,networkMbps:20,latencyMs:40,viewport:[1536,1024],note:'Production gzip for scripts, models and HDR; current request-rule throttling. Fresh browser contexts for cold network cache; browser/driver shader caching is not disabled. Same context reload for warm cache. '+(process.env.FLOWER_PROFILE?'CPU profiler enabled: diagnostic only, not a performance acceptance run.':'No CPU profiler or synchronous readback during timing.'),coldMedian:cold[Math.floor(cold.length/2)],coldMax:cold.at(-1),runs,errors}
+ const cold=runs.filter(r=>r.cache==='cold').map(r=>r.readyMs).sort((a,b)=>a-b),report={sceneId,networkMbps:20,latencyMs:40,viewport:[1536,1024],note:'Production gzip for scripts, models and HDR; current request-rule throttling. Fresh browser contexts for cold network cache; browser/driver shader caching is not disabled. Same context reload for warm cache. readyMs timestamps the committed ready UI after two animation frames; observedReadyMs retains the later automation polling observation. Both start before the scene click. '+(process.env.FLOWER_PROFILE?'CPU profiler enabled: diagnostic only, not a performance acceptance run.':'No CPU profiler or synchronous readback during timing.'),coldMedian:cold[Math.floor(cold.length/2)],coldMax:cold.at(-1),runs,errors}
  await writeFile(resolve(out,sceneId+'-startup.json'),JSON.stringify(report,null,2)+'\n');if(errors.length)throw Error(errors.join('\n'))
 }finally{await browser?.close();await new Promise(done=>server.close(done))}
