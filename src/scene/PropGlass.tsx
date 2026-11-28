@@ -1,12 +1,16 @@
-import { useLayoutEffect, useMemo } from 'react'
+import { useContext, useLayoutEffect, useMemo } from 'react'
+import {FrameTransmission} from './FrameRendering'
 import { createPortal } from '@react-three/fiber'
-import { FrontSide, Mesh, ShaderChunk, Vector4, type MeshPhysicalMaterial, type Object3D } from 'three'
+import { Color, FrontSide, Mesh, ShaderChunk, Vector4, type MeshPhysicalMaterial, type Object3D } from 'three'
 import { GLASS_LIP, tumblerWall } from './core/tumbler'
 
 /** A hollow tumbler samples the active camera's opaque pass, including the flower stems. */
 export default function PropGlass({model,waterPlane}:{model:Object3D;waterPlane?:Vector4}){
+  const frame=useContext(FrameTransmission)
+  const defines=useMemo(()=>frame?{STANDARD:'',PHYSICAL:'',USE_TRANSMISSION:''}:{STANDARD:'',PHYSICAL:''},[frame])
   const wall=useMemo(()=>model.getObjectByName('glass_hollow_wall'),[model])
   const optics=useMemo<MeshPhysicalMaterial['onBeforeCompile']>(()=>shader=>{
+    if(frame)Object.assign(shader.uniforms,{transmission:{value:1},transmissionSamplerMap:{value:frame.texture},transmissionSamplerSize:{value:frame.size},thickness:{value:.005},attenuationColor:{value:new Color('#f0f6f2')},attenuationDistance:{value:.8}})
     shader.uniforms.liquidPlane={value:waterPlane??new Vector4(0,1,0,1)}
     const localVaryings='varying vec3 tumblerPoint;\nvarying vec3 tumblerEye;\n'
     shader.vertexShader=localVaryings+shader.vertexShader.replace('#include <begin_vertex>',
@@ -169,7 +173,7 @@ export default function PropGlass({model,waterPlane}:{model:Object3D;waterPlane?
         }
         #include <opaque_fragment>
       `)
-  },[waterPlane])
+  },[waterPlane,frame])
   useLayoutEffect(()=>{
     if(!(wall instanceof Mesh))return
     const lip=model.getObjectByName('glass_polished_lip'),outlet=model.getObjectByName('glass_pour_lip')
@@ -192,6 +196,6 @@ export default function PropGlass({model,waterPlane}:{model:Object3D;waterPlane?
   if(!(wall instanceof Mesh))return null
   return createPortal(<meshPhysicalMaterial attach="material" metalness={0} depthWrite side={FrontSide}
     onBeforeCompile={optics}
-    transmission={1} thickness={.005} ior={1.48} roughness={.018} envMapIntensity={.87}
+    defines={defines} userData={{frameTransmission:!!frame}} transmission={frame?0:1} thickness={.005} ior={1.48} roughness={.018} envMapIntensity={.87}
     color="#ffffff" attenuationColor="#f0f6f2" attenuationDistance={.8}/>,wall)
 }

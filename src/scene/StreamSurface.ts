@@ -1,4 +1,4 @@
-import { Box3, Color, Float32BufferAttribute, Matrix4, Mesh, NoToneMapping, ShaderMaterial, UniformsLib, Vector3, Vector4, type Camera, type Object3D, type Texture } from 'three'
+import { Box3, Color, PerspectiveCamera, Quaternion, HalfFloatType, WebGLRenderTarget, Float32BufferAttribute, Matrix4, Mesh, NoToneMapping, ShaderMaterial, UniformsLib, Vector3, Vector4, type Camera, type Object3D, type Texture } from 'three'
 import { Reflector } from 'three/examples/jsm/objects/Reflector.js'
 import {canopyProjection,forestSun} from './CanopyLight.ts'
 import {lowWoodlandQuality} from './render-quality.ts'
@@ -56,7 +56,7 @@ function stoneWaterlines(root:Object3D,level:number){
 
 /** Planar reflection follows the player's view. Riverbed pebbles show through the shallow margin. */
 export function streamSurface(source:Mesh,level:number,eye:Camera,time:{value:number},openings:Texture,heightAt:HeightAt|null,eave?:Vector3,stoneRoot:Object3D|null=source.parent){
-  const pool=Boolean(eave)
+  const pool=Boolean(eave),cachedMirror=lowWoodlandQuality&&!pool
   const bedCapture=pool?null:creekBedCapture(level,source)
   const shoreDepth=pool?null:creekShoreDepth(heightAt??(()=>level-.20),level)
   const shoreline=Boolean(source.userData.bankDistanceUV)
@@ -75,8 +75,8 @@ export function streamSurface(source:Mesh,level:number,eye:Camera,time:{value:nu
   geometry.setAttribute('streamMetres',new Float32BufferAttribute(pool?new Float32Array(pos.count*2):creekMetricCoordinates(source),2))
   geometry.translate(0,-level,0).rotateX(Math.PI/2)
   const reflectionScale=lowWoodlandQuality?.5:1
-  const water=new Reflector(geometry,{textureWidth:(pool?768:1024)*reflectionScale,textureHeight:(pool?432:576)*reflectionScale,clipBias:.0015,multisample:0,
-    shader:{name:'Stream across the woodland',uniforms:{...UniformsLib.fog,...(pool?{}:UniformsLib.lights),tDiffuse:{value:null},color:{value:new Color()},textureMatrix:{value:new Matrix4()},time:{value:0},
+  const water=new Reflector(geometry,{textureWidth:(pool?768:cachedMirror?1280:1024)*reflectionScale,textureHeight:(pool?432:cachedMirror?720:576)*reflectionScale,clipBias:.0015,multisample:0,
+    shader:{name:'Stream across the woodland',uniforms:{...UniformsLib.fog,...(pool?{}:UniformsLib.lights),tDiffuse:{value:null},creekPreviousMirror:{value:null},creekMirrorMix:{value:1},color:{value:new Color()},textureMatrix:{value:new Matrix4()},time:{value:0},
       creekBedMap:{value:null},creekBedDepth:{value:null},creekBedWorldToUv:{value:bedCapture?.worldToUv??new Vector4()},creekBedHeightRange:{value:bedCapture?.heightRange??new Vector3()},ior:{value:1.333},
       creekShoreDepthMap:{value:null},creekShoreWorldToUv:{value:shoreDepth?.worldToUv??new Vector4()},creekShoreLevel:{value:level},
       canopyOpenings:{value:openings},sunDirection:{value:new Vector3(...forestSun[pool?'rain':'creek']).normalize()},
@@ -112,6 +112,12 @@ export function streamSurface(source:Mesh,level:number,eye:Camera,time:{value:nu
       ${pool?'':`#include <common>
       #include <packing>
       #include <shadowmap_pars_fragment>`}
+      ${cachedMirror?'uniform sampler2D creekPreviousMirror;uniform float creekMirrorMix;':''}
+      vec3 creekReflection(vec2 coord){
+        vec3 current=texture2D(tDiffuse,coord).rgb;
+        ${cachedMirror?'current=mix(texture2D(creekPreviousMirror,coord).rgb,current,creekMirrorMix);':''}
+        return current;
+      }
       float gaussian(float d){return exp(-d*d);}
       void main(){
         vec2 p=wp.xz;
@@ -197,13 +203,13 @@ export function streamSurface(source:Mesh,level:number,eye:Camera,time:{value:nu
           float narrowWave=.67*sin(finePhase+.44*sin(p.x*12.+p.y*2.3))+.33*sin(thinPhase);
           float frontWindow=rightRun*(.42+.58*packet);
           coord+=frontWindow*vec2(.009*narrowWave*resolved,.0024*sin(thinPhase)*fineResolved);`}
-        vec3 reflected=texture2D(tDiffuse,clamp(coord,.003,.997)).rgb;
+        vec3 reflected=creekReflection(clamp(coord,.003,.997));
         ${pool?'':`// Retain the captured tree/sky boundary. Broad five-tap blur
           // flattened the real reflected crowns into a blue-green slab.
           vec2 blur=vec2(${(.45/(1024*reflectionScale)).toFixed(8)},0.);
           reflected=reflected*.80
-            +texture2D(tDiffuse,clamp(coord+blur,.003,.997)).rgb*.10
-            +texture2D(tDiffuse,clamp(coord-blur,.003,.997)).rgb*.10;
+            +creekReflection(clamp(coord+blur,.003,.997))*.10
+            +creekReflection(clamp(coord-blur,.003,.997))*.10;
           // Compress only HDR peaks; preserve dim tree colour and the actual
           // contrast of sky openings. Wave normals move these captured edges.
           float mirrorLuma=dot(reflected,vec3(.2126,.7152,.0722));
@@ -305,19 +311,39 @@ export function streamSurface(source:Mesh,level:number,eye:Camera,time:{value:nu
   if(bedCapture)water.userData.creekBedCache=bedCapture.stats
   water.userData.creekOptics=bedCapture?'world-xz-hdr-depth-atlas+oblique-mirror':'rain-pool'
   if(bedCapture)water.userData.creekBedAtlas={size:[bedCapture.target.width,bedCapture.target.height],worldToUv:bedCapture.worldToUv.toArray(),heightRange:bedCapture.heightRange.toArray()}
+  const mirrorTarget=water.getRenderTarget(),previousMirror=cachedMirror?new WebGLRenderTarget(mirrorTarget.width,mirrorTarget.height,{type:HalfFloatType,depthBuffer:false}):null
+  if(previousMirror)material.uniforms.creekPreviousMirror.value=previousMirror.texture
+  const mirrorStats={renders:0,reused:0,viewUpdates:0,blends:0}
+  water.userData.creekMirrorCache=mirrorStats
   const dispose=water.dispose.bind(water)
-  water.dispose=()=>{bedCapture?.dispose();shoreDepth?.texture.dispose();dispose()}
+  water.dispose=()=>{previousMirror?.dispose();bedCapture?.dispose();shoreDepth?.texture.dispose();dispose()}
   const render=water.onBeforeRender.bind(water),view=new Matrix4(),projection=new Matrix4()
-  let last=-1,lastPass=-Infinity
+  const mirrorEye=cachedMirror&&eye instanceof PerspectiveCamera?eye.clone():null,rotation=new Quaternion(),savedRotation=new Quaternion()
+  let last=-1,lastPass=-Infinity,blending=false
   water.onBeforeRender=(...args)=>{
     const camera=args[2]
     if(camera!==eye)return
-    const moved=!view.equals(camera.matrixWorld)||!projection.equals(camera.projectionMatrix)
+    const viewChanged=!view.equals(camera.matrixWorld),projectionChanged=!projection.equals(camera.projectionMatrix)
+    rotation.setFromRotationMatrix(camera.matrixWorld)
+    const translated=[12,13,14].some(i=>view.elements[i]!==camera.matrixWorld.elements[i])
+    // Planar reflection rays depend on the eye position, not the head direction.
+    // A wider real capture stays valid during small rotations, without reprojection
+    // lag or a locked view. Leave angular margin for the wave-normal offsets.
+    const moved=projectionChanged||(mirrorEye?translated||rotation.angleTo(savedRotation)>.16:viewChanged)
     const bedUpdated=bedCapture?.capture(args[0],args[1])??false
-    if(!moved&&!bedUpdated&&time.value-last<.14)return
+    if(blending)material.uniforms.creekMirrorMix.value=Math.min(1,Math.max(0,(time.value-last)/.46))
+    // The viewpoint is unchanged while carrying an object. Blend real forest
+    // captures; wave normals/refraction still run every frame. Moving the eye or
+    // projection immediately replaces the capture and disables temporal blending.
+    if(!moved&&!bedUpdated&&time.value-last<(cachedMirror?1.15:.14)){mirrorStats.reused++;return}
     const now=performance.now()
     if(!moved&&!bedUpdated&&lowWoodlandQuality&&time.value!==last&&now-lastPass<65)return
-    lastPass=now;last=time.value;view.copy(camera.matrixWorld);projection.copy(camera.projectionMatrix)
+    if(previousMirror&&mirrorStats.renders===0)args[0].initRenderTarget(previousMirror)
+    blending=Boolean(previousMirror&&!viewChanged&&!projectionChanged&&!bedUpdated&&last>=0&&time.value-last<2.)
+    if(blending&&previousMirror){args[0].copyTextureToTexture(mirrorTarget.texture,previousMirror.texture);mirrorStats.blends++}
+    material.uniforms.creekMirrorMix.value=blending?0:1
+    mirrorStats.renders++;if(moved)mirrorStats.viewUpdates++
+    lastPass=now;last=time.value;view.copy(camera.matrixWorld);projection.copy(camera.projectionMatrix);savedRotation.copy(rotation)
     if(bedCapture)correctCreekMirrorDepth(args[1])
     const outsideOnly=lowWoodlandQuality?args[1].getObjectByName('workbench_and_tools'):undefined
     const shown=outsideOnly?.visible
@@ -328,7 +354,8 @@ export function streamSurface(source:Mesh,level:number,eye:Camera,time:{value:nu
     const groveShown=grove?.visible,shellShown=shell?.visible
     if(grove&&shell){grove.visible=true;shell.visible=false}
     if(!pool)args[0].toneMapping=NoToneMapping
-    try{render(...args)}finally{
+    if(mirrorEye&&camera instanceof PerspectiveCamera){mirrorEye.copy(camera,false);mirrorEye.fov=2*Math.atan(Math.tan(camera.fov*Math.PI/360)*1.6)*180/Math.PI;mirrorEye.updateProjectionMatrix()}
+    try{if(mirrorEye)render(args[0],args[1],mirrorEye,args[3],args[4],args[5]);else render(...args)}finally{
       args[0].toneMapping=tone;if(outsideOnly)outsideOnly.visible=shown!
       if(grove&&shell){grove.visible=groveShown!;shell.visible=shellShown!}
     }

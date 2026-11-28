@@ -25,10 +25,20 @@ export default function SceneEntry({ hasSave }: { hasSave: boolean }) {
     try {
       const [game, assets] = await Promise.all([
         import('./CorePrototype'),
-        import('../services/scene-assets').then(module => module.loadSceneAssets(id)),
+        import('../services/scene-assets').then(module => module.loadSceneAssets(id,true)),
         import('../scene/core/CoreCanvas'),
       ])
       if (!resume) useCoreStore.getState().newJourney(id)
+      if(assets.prepared){
+        // Compile while image requests are in flight. If one fails, swap to the
+        // source loader before the loading screen is dismissed.
+        assets.prepared.ready=assets.prepared.ready.catch(async()=>{
+          const fallback=await import('../services/scene-assets').then(module=>module.loadSceneAssets(id))
+          setSession({Game:game.default,assets:fallback})
+          await new Promise(requestAnimationFrame)
+        })
+        void assets.prepared.ready.catch(()=>{})
+      }
       setSession({ Game: game.default, assets })
     } catch {
       busy.current = false
@@ -37,7 +47,7 @@ export default function SceneEntry({ hasSave }: { hasSave: boolean }) {
     }
   }
 
-  if (session) return <session.Game initialAssets={session.assets} />
+  if (session) return <session.Game key={session.assets.environment.scene.uuid} initialAssets={session.assets} />
 
   return <main className="scene-entry" aria-labelledby="scene-entry-title">
     <div className="scene-entry-inner">

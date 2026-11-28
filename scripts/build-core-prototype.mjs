@@ -14,7 +14,7 @@ const result=await build({root,define:{__FLOWER_ASSETS__:'globalThis.flowerPrevi
 const files=(Array.isArray(result)?result:[result]).flatMap(r=>r.output)
 const scripts=files.filter(f=>f.type==='chunk'),css=files.find(f=>f.type==='asset'&&f.fileName.endsWith('.css'))
 if(scripts.length!==1||!css)throw Error('Expected one script and stylesheet')
-const mime={'.bin':'application/octet-stream','.glb':'model/gltf-binary','.ogg':'audio/ogg','.png':'image/png','.jpg':'image/jpeg','.hdr':'application/octet-stream'}
+const mime={'.pns':'application/octet-stream','.webp':'image/webp','.bin':'application/octet-stream','.glb':'model/gltf-binary','.ogg':'audio/ogg','.png':'image/png','.jpg':'image/jpeg','.hdr':'application/octet-stream'}
 const packed=[],assetHashes=[]
 for(const asset of catalog.assets){
   const bytes=await readFile(resolve(root,'public',asset.file))

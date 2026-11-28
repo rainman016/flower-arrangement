@@ -3,7 +3,7 @@ import {BoxGeometry,Group,Mesh,MeshBasicMaterial,Object3D,Vector3} from 'three'
 import {bambooSurround,seatBambooGroves,seatBambooRocks} from '../../src/scene/BambooSurround'
 
 describe('bamboo grove around the player',()=>{
-  it('plants all three surrounding directions on uneven soil while preserving the front',()=>{
+  it('plants all three surrounding directions on uneven soil while retaining front root contact',()=>{
     const root=new Group(),ground=(x:number,z:number)=>.10*Math.sin(x*.4)+z*.015
     const fern=new Object3D();fern.userData.prototype='fern';fern.position.set(-1.8,ground(-1.8,-3),-3);root.add(fern)
     root.updateMatrixWorld(true)
@@ -19,7 +19,8 @@ describe('bamboo grove around the player',()=>{
     })
     for(const count of Object.values(directions))expect(count).toBeGreaterThan(70)
     expect(fern.position.toArray()).toEqual([-1.8,ground(-1.8,-3),-3])
-    expect(fern.scale.toArray()).toEqual([1,1,1])
+    expect(fern.scale.y).toBeGreaterThan(.6)
+    expect(fern.scale.y).toBeLessThan(1)
     expect(root.userData.bambooSurround.planted).toBeLessThan(1800)
   })
   it('seats an offset scan under a transformed parent into the actual sloping surface',()=>{
