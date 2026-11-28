@@ -16,18 +16,6 @@ export default defineConfig({
     react(),
     tailwindcss(),
     {
-      name: 'shared-scene-code-preload',
-      apply: 'build',
-      transformIndexHtml: {
-        order: 'post',
-        handler(_html, context) {
-          const engine = Object.values(context.bundle ?? {}).find(output =>
-            output.type === 'chunk' && Object.keys(output.modules).some(id => /\/three\/build\/three\.(core|module)\.js$/.test(id)))
-          return engine ? [{ tag: 'link', attrs: { rel: 'modulepreload', href: './' + engine.fileName, fetchpriority: 'low' }, injectTo: 'head' }] : []
-        },
-      },
-    },
-    {
       name: 'site-visit-count',
       apply: 'build',
       transformIndexHtml() {
