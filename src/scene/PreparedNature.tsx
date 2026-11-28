@@ -1,4 +1,5 @@
 import {installInstanceVisibility} from './instance-visibility'
+import {runtimeMark} from '../services/runtime-timing'
 import {useEffect,useMemo,useRef} from 'react'
 import {useFrame,useThree} from '@react-three/fiber'
 import {Mesh} from 'three'
@@ -11,6 +12,7 @@ import {canopyLight} from './CanopyLight'
 export default function PreparedNature({prepared}:{prepared:Prepared}){
   const {camera,gl,invalidate}=useThree(),active=useRef(false)
   const scene=useMemo(()=>{
+    runtimeMark('nature-assemble-start')
     const root=prepared.root.clone(true),clock=prepared.clock
     const originals:Mesh[]=[],copies:Mesh[]=[]
     prepared.root.traverse(o=>{if(o instanceof Mesh)originals.push(o)})
@@ -28,6 +30,7 @@ export default function PreparedNature({prepared}:{prepared:Prepared}){
     const water=source instanceof Mesh&&openings?streamSurface(source,prepared.waterY??-.133,camera,clock,openings,height,undefined,root):null
     source?.removeFromParent();if(water){water.name='creek_surface';root.add(water)}
     installInstanceVisibility(root)
+    runtimeMark('nature-assemble-ready')
     return {root,water,openings}
   },[prepared,camera])
   useEffect(()=>{

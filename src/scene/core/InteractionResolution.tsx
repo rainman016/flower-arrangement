@@ -12,7 +12,8 @@ export function InteractionResolution({world}:{world:CoreWorld}){
     const state=budget.current
     state.ceiling=Math.min(startingPixelRatio(size.width,size.height,window.devicePixelRatio),scene.userData.runtimeCalibration?Math.sqrt(scene.userData.runtimeCalibration.pixels/(size.width*size.height)):Infinity)
     state.slow=0;state.overBudget=0;state.fast=0;state.cooldown=performance.now()+1000
-    setDpr(state.ceiling);notifyResolution(state.ceiling)
+    // Warmup owns the first canvas size, including a recent calibrated budget.
+    if(!lowWoodlandQuality||scene.userData.runtimeCalibration){setDpr(state.ceiling);notifyResolution(state.ceiling)}
     if(!lowWoodlandQuality)return
     const record=(event:PointerEvent)=>{
       if(event.target!==gl.domElement)return

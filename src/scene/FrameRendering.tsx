@@ -10,6 +10,13 @@ export const FrameTransmission=createContext<{texture:Texture;size:Vector2}|null
 /** Reuse the current opaque HDR frame for glass instead of drawing the forest twice. */
 export function FrameRendering({children}:{children:ReactNode}){
  const {gl,scene}=useThree()
+ useEffect(()=>{
+  // Navigation does not unmount React. Release this document's GPU allocations
+  // before a replacement Canvas starts; preserve pages retained in the back cache.
+  const release=(event:PageTransitionEvent)=>{if(!event.persisted){gl.dispose();gl.forceContextLoss()}}
+  window.addEventListener('pagehide',release)
+  return()=>window.removeEventListener('pagehide',release)
+ },[gl])
  const frame=useMemo(()=>{
   if(!lowWoodlandQuality||new URLSearchParams(location.search).has('native-render')||!gl.extensions.has('EXT_color_buffer_float'))return null
   const colour=new WebGLRenderTarget(1,1,{type:UnsignedInt101111Type,format:RGBFormat,samples:2,depthBuffer:true})
@@ -44,7 +51,7 @@ export function FrameRendering({children}:{children:ReactNode}){
   scene.userData.frameTransmission=true
   const displays=new Map<Material,{before:Material['onBeforeCompile'];key:Material['customProgramCacheKey'];linear:{value:number};exposure:{value:number}}>()
   const prepareDisplay=(material:Material)=>{
-   if(displays.has(material)||material.toneMapped&&(!(material instanceof ShaderMaterial)||material.fragmentShader.includes('<tonemapping_fragment>')))return
+    if(!material.colorWrite||displays.has(material)||material.toneMapped&&(!(material instanceof ShaderMaterial)||material.fragmentShader.includes('<tonemapping_fragment>')))return
    const before=material.onBeforeCompile,key=material.customProgramCacheKey,baseKey=key.call(material),linear={value:0},exposure={value:1}
    displays.set(material,{before,key,linear,exposure});material.customProgramCacheKey=()=>baseKey+'-frame-display-v1'
    material.onBeforeCompile=(shader,renderer)=>{
@@ -57,6 +64,18 @@ export function FrameRendering({children}:{children:ReactNode}){
    };material.needsUpdate=true
   }
   scene.traverse(o=>{if(o instanceof Mesh)for(const m of Array.isArray(o.material)?o.material:[o.material])prepareDisplay(m)})
+  scene.userData.warmFrame=(camera:Parameters<typeof gl.render>[1])=>{
+   const previous=gl.getRenderTarget(),pending:Promise<unknown>[]=[]
+   try{
+    if(!water){const found=scene.getObjectByName('creek_surface');if(found instanceof Mesh){water=found;creekDepth=creekDepthPass(water)}}
+    gl.getDrawingBufferSize(size);frame.colour.setSize(size.x,size.y);frame.transmitted.setSize(size.x,size.y);frame.transmission.size.copy(size)
+    gl.initRenderTarget(frame.colour);gl.initRenderTarget(frame.transmitted);water?.userData.warmOptics?.(gl)
+    gl.setRenderTarget(frame.colour)
+    if(creekDepth)pending.push(gl.compileAsync(creekDepth.scene,camera))
+    gl.setRenderTarget(null);pending.push(gl.compileAsync(frame.output,frame.camera))
+   }finally{gl.setRenderTarget(previous)}
+   return Promise.all(pending)
+  }
   gl.renderBufferDirect=function(camera,scene,geometry,material,object,group){
    // Keep the workbench present for real shadow maps, but omit its colour from
    // the cached outdoor pass. It is drawn live in front of that pass every frame.
@@ -102,7 +121,7 @@ export function FrameRendering({children}:{children:ReactNode}){
     render.call(this,frame.output,frame.camera)
    }finally{phase='idle';view=undefined;gl.autoClear=clear;gl.shadowMap.autoUpdate=shadow;gl.info.autoReset=reset;gl.setRenderTarget(null)}
   }
-  return()=>{creekDepth?.dispose();gl.setOpaqueSort(null);gl.render=render;gl.renderBufferDirect=draw;delete scene.userData.frameTransmission;for(const [material,old]of displays){material.onBeforeCompile=old.before;material.customProgramCacheKey=old.key;material.needsUpdate=true}}
+  return()=>{creekDepth?.dispose();gl.setOpaqueSort(null);gl.render=render;gl.renderBufferDirect=draw;delete scene.userData.frameTransmission;delete scene.userData.warmFrame;for(const [material,old]of displays){material.onBeforeCompile=old.before;material.customProgramCacheKey=old.key;material.needsUpdate=true}}
  },[gl,scene,frame])
  useEffect(()=>()=>{frame?.displayLight.dispose();frame?.colour.dispose();frame?.transmitted.dispose();frame?.material.dispose();frame?.geometry.dispose()},[frame])
  return <FrameTransmission.Provider value={frame?.transmission??null}>{children}</FrameTransmission.Provider>

@@ -15,7 +15,7 @@ const LOOKS = {
   creek: {key:5.15,color:'#ffe2a5',sky:'#cddcda',ground:'#46553c',exposure:.96,fog:'#a0b6b7',near:7.8,far:66},
 }
 
-export default function SceneLighting({sceneId,light}:{sceneId:SceneId;light:Texture}){
+export default function SceneLighting({sceneId,light,sky:preparedSky}:{sceneId:SceneId;light:Texture;sky?:Texture}){
   const {scene,gl,invalidate}=useThree(),look=LOOKS[sceneId]
   useLayoutEffect(()=>{
     if(!lowWoodlandQuality)return
@@ -32,7 +32,7 @@ export default function SceneLighting({sceneId,light}:{sceneId:SceneId;light:Tex
       lastShadow.current=now
     }
   })
-  const sky=useMemo(()=>woodlandSky(sceneId),[sceneId])
+  const sky=useMemo(()=>preparedSky?.clone()??woodlandSky(sceneId),[sceneId,preparedSky])
   useEffect(()=>()=>sky.dispose(),[sky])
   const workSurface=useMemo(()=>{const object=new Object3D();object.position.set(0,.77,0);return object},[])
   const sunPatch=useMemo(()=>{

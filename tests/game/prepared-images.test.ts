@@ -18,4 +18,17 @@ describe('prepared image completion',()=>{
   image.complete=true;image.dispatchEvent(new Event('error'))
   await expect(pending).rejects.toThrow('环境纹理读取失败')
  })
+ it('waits for cached pixels to decode before reporting readiness',async()=>{
+  const image=new Image();image.complete=true;image.naturalWidth=64
+  let decoded!:()=>void,ready=false
+  Object.assign(image,{decode:()=>new Promise<void>(resolve=>{decoded=resolve})})
+  const pending=preparedImagesReady({image:{data:image}}).then(()=>{ready=true})
+  await Promise.resolve();expect(ready).toBe(false)
+  decoded();await pending;expect(ready).toBe(true)
+ })
+ it('propagates decoding failure to the scene fallback',async()=>{
+  const image=new Image();image.complete=true;image.naturalWidth=64
+  Object.assign(image,{decode:()=>Promise.reject(new Error('decode failed'))})
+  await expect(preparedImagesReady({image:{data:image}})).rejects.toThrow('decode failed')
+ })
 })

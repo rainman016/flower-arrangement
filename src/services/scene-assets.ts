@@ -6,8 +6,11 @@ import { assetUrl, SCENES } from '../content/catalog'
 import {lowWoodlandQuality} from '../scene/render-quality'
 import {loadDistanceSurface} from '../scene/distance-surface'
 import {loadPreparedNature,type PreparedNature} from './prepared-nature'
+import {runtimeMark} from './runtime-timing'
+import {woodlandSky} from '../scene/WoodlandSky'
+import {loadCachedAsset} from './cached-asset'
 import type { SceneId } from '../game/types'
-type SceneAssetBase={kit:GLTF;natureKit:Pick<GLTF,'scene'>;environment:Pick<GLTF,'scene'>;sceneId:SceneId;light:Texture}
+type SceneAssetBase={kit:GLTF;natureKit:Pick<GLTF,'scene'>;environment:Pick<GLTF,'scene'>;sceneId:SceneId;light:Texture;sky:Texture}
 export type SceneAssets=SceneAssetBase&(
   {prepared:PreparedNature;distance?:undefined;floor?:undefined;bankAtlas?:undefined}|
   {prepared?:undefined;distance?:Group;floor:Texture;bankAtlas?:Texture}
@@ -31,9 +34,15 @@ function distantForest(sceneId:SceneId){
 const environments=new Map<SceneId,Promise<GLTF>>()
 const preparedCache=new Map<SceneId,Promise<PreparedNature>>()
 const failedPrepared=new Set<SceneId>()
+const skies=new Map<SceneId,Promise<Texture>>()
 export async function loadSceneAssets(sceneId:SceneId,overlapTextures=false):Promise<SceneAssets>{
-  kit??=new GLTFLoader().loadAsync(assetUrl('prop-kit')).catch(e=>{kit=undefined;throw e})
-  lightAsset??=new HDRLoader().loadAsync(assetUrl('woodland-light')).then(light=>{
+  runtimeMark('assets-start')
+  // Start fixed sky computation while the selected scene's network requests run.
+  // Lighting clones the texture; its CPU pixels are shared and never recomputed.
+  if(!skies.has(sceneId))skies.set(sceneId,new Promise<void>(resolve=>setTimeout(resolve,0)).then(()=>woodlandSky(sceneId)).catch(error=>{skies.delete(sceneId);throw error}))
+  const skyReady=skies.get(sceneId)!
+  kit??=loadCachedAsset(assetUrl('prop-kit'),url=>new GLTFLoader().loadAsync(url)).catch(e=>{kit=undefined;throw e})
+  lightAsset??=loadCachedAsset(assetUrl('woodland-light'),url=>new HDRLoader().loadAsync(url)).then(light=>{
     light.mapping=EquirectangularReflectionMapping;return light
   }).catch(error=>{lightAsset=undefined;throw error})
   const preparedAsset=__FLOWER_ASSETS__.assets.find(a=>a.id==='prepared-'+sceneId)
@@ -45,11 +54,12 @@ export async function loadSceneAssets(sceneId:SceneId,overlapTextures=false):Pro
       preparedCache.set(sceneId,pending)
 
     }
-    const [prepared,model,light]=await Promise.all([pending.catch(()=>undefined),kit,lightAsset])
+    const [prepared,model,light,sky]=await Promise.all([pending.catch(()=>undefined),kit,lightAsset,skyReady])
+    runtimeMark('assets-ready')
     if(prepared?.sceneId===sceneId){
       void prepared.ready.catch(()=>failedPrepared.add(sceneId))
       const usable=overlapTextures||await prepared.ready.then(()=>true,()=>false)
-      if(usable)return {prepared,kit:model,natureKit:{scene:prepared.root},environment:{scene:prepared.root},sceneId,light}
+      if(usable)return {prepared,kit:model,natureKit:{scene:prepared.root},environment:{scene:prepared.root},sceneId,light,sky}
     }
     // A failed optional prepared file falls back to the authored scene. Source
     // assets remain cached, and subsequent scene visits do not retry a bad file.
@@ -71,7 +81,6 @@ export async function loadSceneAssets(sceneId:SceneId,overlapTextures=false):Pro
       return texture
     }).catch(error=>{creekSurface=undefined;throw error})
   }
-  const [model,plants,nature,light,floor,bankAtlas,distance]=await Promise.all([kit,natureKit,environment,lightAsset,floorAsset,sceneId==='creek'?creekSurface:undefined,distantForest(sceneId)])
-  return {distance,kit:model,natureKit:plants,environment:nature,sceneId,light,floor,bankAtlas}
+  const [model,plants,nature,light,floor,bankAtlas,distance,sky]=await Promise.all([kit,natureKit,environment,lightAsset,floorAsset,sceneId==='creek'?creekSurface:undefined,distantForest(sceneId),skyReady])
+  return {distance,kit:model,natureKit:plants,environment:nature,sceneId,light,floor,bankAtlas,sky}
 }
-

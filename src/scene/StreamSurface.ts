@@ -313,6 +313,11 @@ export function streamSurface(source:Mesh,level:number,eye:Camera,time:{value:nu
   if(bedCapture)water.userData.creekBedAtlas={size:[bedCapture.target.width,bedCapture.target.height],worldToUv:bedCapture.worldToUv.toArray(),heightRange:bedCapture.heightRange.toArray()}
   const mirrorTarget=water.getRenderTarget(),previousMirror=cachedMirror?new WebGLRenderTarget(mirrorTarget.width,mirrorTarget.height,{type:HalfFloatType,depthBuffer:false}):null
   if(previousMirror)material.uniforms.creekPreviousMirror.value=previousMirror.texture
+  water.userData.warmOptics=(renderer:Parameters<typeof water.onBeforeRender>[0])=>{
+    renderer.initRenderTarget(mirrorTarget)
+    if(previousMirror)renderer.initRenderTarget(previousMirror)
+    if(bedCapture)renderer.initRenderTarget(bedCapture.target)
+  }
   const mirrorStats={renders:0,reused:0,viewUpdates:0,blends:0}
   water.userData.creekMirrorCache=mirrorStats
   const dispose=water.dispose.bind(water)
