@@ -66,7 +66,7 @@ export default function SceneEntry({ hasSave }: { hasSave: boolean }) {
         {SCENES.map(scene => <button key={scene.id} type="button" className="scene-entry-card"
           aria-label={scene.name} disabled={!!loading} data-loading={loading === scene.id}
           onClick={() => hasSave ? setConfirm(scene.id) : void enter(scene.id, false)}>
-          <img src={assetUrl(scene.preview)} alt="" width="640" height="426" />
+          <img src={assetUrl(scene.preview)} alt="" width="640" height="426" decoding="async" />
           <span>{scene.name}</span><i aria-hidden="true">→</i>
         </button>)}
       </div>

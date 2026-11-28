@@ -1,4 +1,4 @@
-import type {Camera,Scene,WebGLRenderer} from 'three'
+import {Quaternion,type Camera,type Scene,type WebGLRenderer} from 'three'
 
 /** Measure real GPU work without synchronous readback. Called under the loading UI. */
 export async function calibrateScene(renderer:WebGLRenderer,scene:Scene,camera:Camera,cancelled:()=>boolean){
@@ -7,10 +7,14 @@ export async function calibrateScene(renderer:WebGLRenderer,scene:Scene,camera:C
  // before the loading state is dismissed, but does not count toward calibration.
  const started=performance.now();renderer.render(scene,camera);scene.userData.runtimeTimings.firstDraw=performance.now()-started
  if(!ext||cancelled())return undefined
- const queries:WebGLQuery[]=[],values:number[]=[]
+ const queries:WebGLQuery[]=[],values:number[]=[],orientation=camera.quaternion.clone(),turn=new Quaternion()
  try{
   for(let i=0;i<3&&!cancelled();i++){
    await new Promise(requestAnimationFrame)
+   // Include side/rear workloads and upload their visible geometry while the
+   // loading cover is still present. Restore the real seated view in finally.
+   turn.setFromAxisAngle(camera.up,i*2*Math.PI/3)
+   camera.quaternion.copy(orientation).premultiply(turn);camera.updateMatrixWorld(true)
    const q=gl.createQuery();if(!q)break
    queries.push(q);gl.beginQuery(ext.TIME_ELAPSED_EXT,q)
    try{renderer.render(scene,camera)}finally{gl.endQuery(ext.TIME_ELAPSED_EXT)}
@@ -25,5 +29,5 @@ export async function calibrateScene(renderer:WebGLRenderer,scene:Scene,camera:C
   }
   if(values.length<3)return undefined
   return Math.max(...values)
- }finally{queries.forEach(q=>gl.deleteQuery(q))}
+ }finally{camera.quaternion.copy(orientation);camera.updateMatrixWorld(true);queries.forEach(q=>gl.deleteQuery(q))}
 }
