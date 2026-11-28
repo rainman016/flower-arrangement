@@ -42,11 +42,13 @@ export function InteractionResolution({world}:{world:CoreWorld}){
     b.slow=delta>.0295?b.slow+Math.min(.25,delta):Math.max(0,b.slow-delta*.45)
     b.fast=delta<.022?b.fast+delta:0
     const current=gl.getPixelRatio()
-    b.overBudget=current<=.66&&delta>.046?b.overBudget+Math.min(.25,delta):Math.max(0,b.overBudget-delta*.45)
+    // Respond to a persistent tail of slow frames, even when cached frames are
+    // fast enough to keep the average low. One isolated pause cannot trigger it.
+    b.overBudget=delta>.0333?b.overBudget+1:Math.max(0,b.overBudget-.04)
     const floor=Math.min(b.ceiling,.53)
-    const next=b.slow>.9?Math.max(floor,current-.06):b.fast>8?Math.min(b.ceiling,current+.08):current
+    const next=b.slow>.9||b.overBudget>4?Math.max(floor,current-.06):b.fast>8?Math.min(b.ceiling,current+.08):current
     if(Math.abs(next-current)<.001)return
-    b.slow=0;b.fast=0;b.cooldown=now+1700;setDpr(next);notifyResolution(next)
+    b.slow=0;b.overBudget=0;b.fast=0;b.cooldown=now+1700;setDpr(next);notifyResolution(next)
   })
   return null
 }

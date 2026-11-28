@@ -60,7 +60,11 @@ export function FrameRendering({children}:{children:ReactNode}){
   gl.renderBufferDirect=function(camera,scene,geometry,material,object,group){
    // Keep the workbench present for real shadow maps, but omit its colour from
    // the cached outdoor pass. It is drawn live in front of that pass every frame.
-   if(rootScene.userData.frameLinearTarget&&gl.getRenderTarget()===rootScene.userData.frameLinearTarget&&onWorkbench(object))return
+   if(rootScene.userData.frameLinearTarget&&gl.getRenderTarget()===rootScene.userData.frameLinearTarget){
+    if(onWorkbench(object))return
+    const slice=rootScene.userData.frameEnvironmentSlice,foliage=material.alphaTest>0||material.alphaToCoverage||material.transparent
+    if(slice===1&&foliage||slice===2&&!foliage)return
+   }
    if(phase!=='idle'&&camera===view&&gl.getRenderTarget()===frame.colour){
     if(rootScene.userData.frameNatureCached&&inNature(object))return
     const overlay=object!==water&&(material.transparent||material.userData.frameTransmission===true)

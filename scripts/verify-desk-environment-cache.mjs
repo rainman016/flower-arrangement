@@ -35,5 +35,5 @@ try{
   reports.push({sceneId,errors,difference,stats:data.stats,active:data.active,view});console.log(JSON.stringify(reports.at(-1)));await page.close()
  }
  await writeFile(resolve(out,'report.json'),JSON.stringify(reports,null,2)+'\n')
- for(const r of reports){assert.deepEqual(r.errors,[]);assert.ok(r.stats.reused>0);assert.ok(r.view.after>r.view.before);assert.ok(r.difference.mean<.2&&r.difference.pixelsOver8<.002,JSON.stringify(r))}
+ for(const r of reports){assert.deepEqual(r.errors,[]);assert.ok(r.stats.reused>0);assert.ok(r.stats.batches>0);assert.ok(r.view.after>r.view.before);assert.ok(r.difference.mean<.2&&r.difference.pixelsOver8<.002,JSON.stringify(r))}
 }finally{await browser?.close();await new Promise(done=>server.httpServer.close(done))}
