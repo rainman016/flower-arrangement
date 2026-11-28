@@ -52,7 +52,7 @@ try{
    document.createElementNS=(ns,name,...args)=>{const element=create(ns,name,...args);if(name==='img')flowerLoadingImages.push(new WeakRef(element));return element}
   })
   await cdp.send('Network.enable');await cdp.send('Network.emulateNetworkConditionsByRule',{offline:false,matchedNetworkConditions:[{urlPattern:'',latency:40,downloadThroughput:20e6/8,uploadThroughput:5e6/8}]})
-  for(const cache of i===0?['cold','warm']:['cold']){
+  for(const cache of ['cold','warm']){
    if(process.env.FLOWER_PROFILE){await cdp.send('Profiler.enable');await cdp.send('Profiler.setSamplingInterval',{interval:1000});await cdp.send('Profiler.start')}
    const started=Date.now();await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'domcontentloaded'});await page.getByRole('group',{name:'选择场景'}).waitFor()
    await page.waitForFunction(()=>globalThis.flowerSelectorAt>0)

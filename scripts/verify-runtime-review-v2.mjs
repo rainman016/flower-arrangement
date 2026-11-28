@@ -3,7 +3,7 @@ import {pathToFileURL} from 'node:url'
 import {resolve} from 'node:path'
 import {readFile,writeFile} from 'node:fs/promises'
 import assert from 'node:assert/strict'
-const out=resolve('../../art/deliverables/woodland-runtime-v2'),browser=await chromium.launch({channel:'chrome',headless:true})
+const out=resolve(process.env.FLOWER_REPORT||'../../art/deliverables/woodland-runtime-v2'),browser=await chromium.launch({channel:'chrome',headless:true})
 try{
  const page=await browser.newPage({viewport:{width:1536,height:1024}}),errors=[];page.on('pageerror',e=>errors.push(e.message))
  await page.goto(pathToFileURL(resolve(out,'index.html')).href)

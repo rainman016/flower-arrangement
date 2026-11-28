@@ -1,7 +1,7 @@
 import {preparedImagesReady} from './prepared-images'
-import {loadCachedAsset} from './cached-asset'
+import {decodeCachedAsset} from './cached-asset'
 import {prepareTextureBitmaps} from './prepared-bitmaps'
-import {Texture,ImageBitmapLoader} from 'three'
+import {Texture} from 'three'
 import {runtimeMark} from './runtime-timing'
 import {decodePreparedData} from './prepared-binary'
 import {Color,CustomBlending,Matrix3,Matrix4,Mesh,LoadingManager,ObjectLoader,OneFactor,OneMinusSrcAlphaFactor,OrthographicCamera,ShaderMaterial,SrcAlphaFactor,Vector2,Vector3,Vector4,Quaternion,ZeroFactor,type Group} from 'three'
@@ -42,13 +42,14 @@ export async function loadPreparedNature(url:string,resolveAsset?:(id:string)=>s
   const pending=external.map((entry:any)=>{
     const image=document.createElementNS('http://www.w3.org/1999/xhtml','img') as HTMLImageElement
     images[entry.uuid]=new Texture(image).source
-    const loaded=loadCachedAsset(entry.url,async url=>{
+    const loaded=decodeCachedAsset(entry.url,async blob=>{
       if(typeof createImageBitmap==='function'){
-        const bitmap=await new ImageBitmapLoader().setOptions({imageOrientation:'none',premultiplyAlpha:'none',colorSpaceConversion:'none'}).loadAsync(url)
+        const bitmap=await createImageBitmap(blob,{imageOrientation:'none',premultiplyAlpha:'none',colorSpaceConversion:'none'})
         imageBitmaps.set(image,bitmap)
         if(!(globalThis as {flowerUploadReview?:boolean}).flowerUploadReview)return
       }
-      image.src=url;await preparedImagesReady({image:{data:image}})
+      const local=URL.createObjectURL(blob)
+      try{image.src=local;await preparedImagesReady({image:{data:image}})}finally{URL.revokeObjectURL(local)}
     })
     imageLoads.set(image,loaded);return loaded
   })

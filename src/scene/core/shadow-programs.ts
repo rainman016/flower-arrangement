@@ -1,4 +1,5 @@
 import {BackSide,DoubleSide,FrontSide,Group,Mesh,MeshDepthMaterial,type Material,type MeshStandardMaterial,type Scene} from 'three'
+import {warmupMesh} from './warmup-mesh'
 
 /** Submit the same PCF depth variants that Three chooses on the first shadow draw. */
 export function shadowPrograms(scene:Scene){
@@ -15,7 +16,7 @@ export function shadowPrograms(scene:Scene){
   depth.displacementMap=surface.displacementMap;depth.displacementScale=surface.displacementScale;depth.displacementBias=surface.displacementBias
   depth.clipShadows=surface.clipShadows;depth.clippingPlanes=surface.clippingPlanes;depth.clipIntersection=surface.clipIntersection
   depth.visible=surface.visible;depth.wireframe=surface.wireframe
-  const proxy=object.clone(false);proxy.material=depth;group.add(proxy);owned.push(depth)
+  const proxy=warmupMesh(object,depth);group.add(proxy);owned.push(depth)
  })
  return {group,dispose:()=>{for(const material of owned)material.dispose();group.clear()}}
 }

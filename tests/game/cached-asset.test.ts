@@ -1,5 +1,5 @@
 import {afterEach,describe,expect,it,vi} from 'vitest'
-import {loadCachedAsset} from '../../src/services/cached-asset'
+import {loadCachedAsset,decodeCachedAsset} from '../../src/services/cached-asset'
 const nativeFetch=globalThis.fetch,url='https://game.test/assets/versioned.glb'
 afterEach(()=>vi.unstubAllGlobals())
 function storage(){
@@ -10,6 +10,13 @@ function storage(){
 }
 const decode=async(url:string)=>{const text=await(await nativeFetch(url)).text();if(text==='broken')throw Error('bad data');return text}
 describe('persistent immutable assets',()=>{
+ it('decodes a single network body without cloning its stream or fetching a blob URL',async()=>{
+  storage();const response=new Response('pixels'),clone=vi.spyOn(response,'clone').mockImplementation(()=>{throw Error('unconsumed stream')})
+  const fetch=vi.fn(async()=>response);vi.stubGlobal('fetch',fetch)
+  expect(await decodeCachedAsset(url,blob=>blob.text())).toBe('pixels')
+  expect(clone).not.toHaveBeenCalled();expect(fetch).toHaveBeenCalledTimes(1)
+  expect(await decodeCachedAsset(url,blob=>blob.text())).toBe('pixels');expect(fetch).toHaveBeenCalledTimes(1)
+ })
  it('reuses a saved asset without another network download',async()=>{
   storage();const fetch=vi.fn(async()=>new Response('model'));vi.stubGlobal('fetch',fetch)
   expect(await loadCachedAsset(url,decode)).toBe('model');expect(await loadCachedAsset(url,decode)).toBe('model');expect(fetch).toHaveBeenCalledTimes(1)
