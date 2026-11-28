@@ -1,3 +1,4 @@
+import {gpuArguments,verifyGpu} from './browser-gpu.mjs'
 import {preview} from 'vite'
 import {chromium} from '@playwright/test'
 import {mkdir,writeFile} from 'node:fs/promises'
@@ -7,9 +8,11 @@ import {visibleDeskPoint,deskMouseTargets} from './desk-mouse-targets.mjs'
 const sceneId=process.argv[2]||'bamboo',label=process.argv[3]||'session',seconds=Number(process.env.FLOWER_SECONDS||300),out=resolve(process.env.FLOWER_DELIVERY||'../runtime-qa',label)
 await mkdir(out,{recursive:true});const server=await preview({preview:{host:'127.0.0.1',port:0,open:false}});let browser
 try{
- browser=await chromium.launch({channel:'chrome',headless:true});const page=await browser.newPage({viewport:{width:1536,height:1024}}),errors=[]
+ browser=await chromium.launch({channel:'chrome',headless:true,args:gpuArguments()});const page=await browser.newPage({viewport:{width:1536,height:1024}}),errors=[]
  page.setDefaultTimeout(90000);page.on('pageerror',e=>{errors.push(e.message);console.log('PAGE ERROR '+e.message)});page.on('console',m=>{if(/Shader Error|THREE.WebGLProgram|WebGL: INVALID/.test(m.text()))errors.push(m.text().slice(0,1000))})
  await page.addInitScript(()=>{globalThis.flowerCoreReview=true});await page.goto(server.resolvedUrls.local[0]);await page.getByRole('button',{name:sceneId==='bamboo'?'竹林清风':'溪畔观流',exact:true}).click();await page.locator('main[data-core-ready="true"]').waitFor();await page.waitForTimeout(4000)
+ const actualGpu=await page.evaluate(()=>{const gl=window.__coreInspect.renderer.getContext(),ext=gl.getExtension('WEBGL_debug_renderer_info');return ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER)})
+ verifyGpu(actualGpu);console.log(sceneId+' GPU '+actualGpu)
  if(errors.length)throw Error(errors.slice(0,2).join('\n'))
  await page.evaluate(()=>{
   const {renderer,scene,camera}=window.__coreInspect,gl=renderer.getContext(),ext=gl.getExtension('EXT_disjoint_timer_query_webgl2'),render=renderer.render,pending=[]

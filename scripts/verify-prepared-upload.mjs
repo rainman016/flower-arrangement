@@ -1,3 +1,4 @@
+import {gpuArguments,verifyGpu} from './browser-gpu.mjs'
 import {preview} from 'vite'
 import {chromium} from '@playwright/test'
 import {mkdir,writeFile} from 'node:fs/promises'
@@ -6,11 +7,12 @@ import assert from 'node:assert/strict'
 const out=resolve(process.env.FLOWER_DELIVERY||'../runtime-qa','prepared-upload'),server=await preview({preview:{host:'127.0.0.1',port:0,open:false}})
 await mkdir(out,{recursive:true});let browser
 try{
- browser=await chromium.launch({channel:'chrome',headless:true});const results=[]
+ browser=await chromium.launch({channel:'chrome',headless:true,args:gpuArguments()});const results=[]
  for(const scene of ['bamboo','creek']){
   const page=await browser.newPage({viewport:{width:1536,height:1024}}),errors=[];page.setDefaultTimeout(90000);page.on('pageerror',e=>errors.push(e.message))
   const ready=()=>page.locator('main[data-core-ready="true"]').waitFor().catch(async error=>{await writeFile(resolve(out,scene+'-failure.json'),JSON.stringify({errors,state:await page.evaluate(()=>({text:document.body.innerText,timing:window.__coreInspect?.scene.userData.runtimeTimings,calibration:window.__coreInspect?.scene.userData.runtimeCalibration,glLost:window.__coreInspect?.renderer.getContext().isContextLost()}))},null,2));throw error})
   await page.addInitScript(()=>{globalThis.flowerCoreReview=true;globalThis.flowerUploadReview=!sessionStorage.getItem('flower-qa-release')});await page.goto(server.resolvedUrls.local[0]);await page.getByRole('button',{name:scene==='bamboo'?'竹林清风':'溪畔观流',exact:true}).click();await ready()
+  const gpu=await page.evaluate(()=>{const gl=window.__coreInspect.renderer.getContext(),ext=gl.getExtension('WEBGL_debug_renderer_info');return ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER)});verifyGpu(gpu)
   const rows=await page.evaluate(()=>{
    const canvas=document.createElement('canvas');canvas.width=canvas.height=257
    const gl=canvas.getContext('webgl2',{premultipliedAlpha:false,preserveDrawingBuffer:true}),program=gl.createProgram(),seen=new Set(),rows=[]
@@ -52,7 +54,7 @@ try{
   await ready()
   assert.equal(await page.evaluate(()=>window.__coreInspect.scene.userData.runtimeCalibration.cached),true,'Reload reuses the recent viewport calibration')
   assert.deepEqual(requests,[],'Reload reuses exact cached model, light and texture bytes')
-  results.push({scene,textures:rows.length,maxMean:Math.max(...rows.map(r=>r.mean)),maxAlphaDifference:Math.max(...rows.map(r=>r.alphaMax)),retainedPage:true,reloadReleased:true,calibrationReused:true,assetNetworkRequests:requests.length});await page.close()
+  results.push({scene,gpu,textures:rows.length,maxMean:Math.max(...rows.map(r=>r.mean)),maxAlphaDifference:Math.max(...rows.map(r=>r.alphaMax)),retainedPage:true,reloadReleased:true,calibrationReused:true,assetNetworkRequests:requests.length});await page.close()
  }
  await writeFile(resolve(out,'report.json'),JSON.stringify(results,null,2)+'\n');console.log(JSON.stringify(results))
 }finally{await browser?.close();await new Promise(done=>server.httpServer.close(done))}

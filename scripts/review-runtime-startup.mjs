@@ -1,3 +1,4 @@
+import {gpuArguments,verifyGpu} from './browser-gpu.mjs'
 import {createServer} from 'node:http'
 import {readFile,writeFile,mkdir,stat} from 'node:fs/promises'
 import {resolve,extname,sep} from 'node:path'
@@ -17,7 +18,7 @@ const server=createServer(async(req,res)=>{
 await new Promise(done=>server.listen(0,'127.0.0.1',done))
 let browser
 try{
- browser=await chromium.launch({channel:'chrome',headless:true});const runs=[],errors=[]
+ browser=await chromium.launch({channel:'chrome',headless:true,args:gpuArguments()});const runs=[],errors=[]
  for(let i=0;i<Number(process.env.FLOWER_RUNS||3);i++){
   const context=await browser.newContext({viewport:{width:1536,height:1024},deviceScaleFactor:1}),page=await context.newPage(),cdp=await context.newCDPSession(page)
   const browserSetupStart=Date.now()
@@ -65,6 +66,7 @@ try{
     const {renderer,scene}=window.__coreInspect,gl=renderer.getContext(),ext=gl.getExtension('WEBGL_debug_renderer_info')
     return {marks:performance.getEntriesByType('mark').filter(m=>m.name.startsWith('flower:')).map(m=>({name:m.name,ms:m.startTime})),programs:scene.userData.runtimePrograms,timing:scene.userData.runtimeTimings,calibration:scene.userData.runtimeCalibration,dpr:renderer.getPixelRatio(),gpu:ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER),prepared:scene.getObjectByName('nature_environment').userData.preparedNature===true,resources:performance.getEntriesByType('resource').filter(r=>!r.name.startsWith('blob:')).map(r=>({file:r.name.split('/').pop(),bytes:r.transferSize,duration:r.duration}))}
    })
+   verifyGpu(detail.gpu)
    if(process.env.FLOWER_PROFILE){
     const {profile}=await cdp.send('Profiler.stop');await writeFile(resolve(out,sceneId+'-'+cache+'-'+i+'.cpuprofile'),JSON.stringify(profile))
     const nodes=new Map(profile.nodes.map(n=>[n.id,n.callFrame])),times=new Map()
@@ -79,6 +81,6 @@ try{
   }
   await context.close()
  }
- const cold=runs.filter(r=>r.cache==='cold').map(r=>r.readyMs).sort((a,b)=>a-b),report={sceneId,networkMbps:20,latencyMs:40,viewport:[1536,1024],note:'A blank-document compositor paint precedes navigation; browserSetupMs records that excluded browser initialization, with no game code/assets/WebGL preloaded. Production gzip for scripts, models and HDR; current request-rule throttling. Fresh browser contexts for cold network cache; browser/driver shader caching is not disabled. Same context reload for warm cache. readyMs runs from the actual final entry-confirmation click to the committed ready UI after two animation frames. selectableMs also waits for selector paint. observedReadyMs and observedSelectableMs retain automation elapsed time, including actionability, confirmation and polling waits. '+(process.env.FLOWER_PROFILE?'CPU profiler enabled: diagnostic only, not a performance acceptance run.':'No CPU profiler or synchronous readback during timing.'),coldMedian:cold[Math.floor(cold.length/2)],coldMax:cold.at(-1),runs,errors}
+ const cold=runs.filter(r=>r.cache==='cold').map(r=>r.readyMs).sort((a,b)=>a-b),report={sceneId,networkMbps:20,latencyMs:40,viewport:[1536,1024],requestedAdapter:process.env.FLOWER_GPU_LUID??null,note:'A blank-document compositor paint precedes navigation; browserSetupMs records that excluded browser initialization, with no game code/assets/WebGL preloaded. Production gzip for scripts, models and HDR; current request-rule throttling. Fresh browser contexts for cold network cache; browser/driver shader caching is not disabled. Same context reload for warm cache. readyMs runs from the actual final entry-confirmation click to the committed ready UI after two animation frames. selectableMs also waits for selector paint. observedReadyMs and observedSelectableMs retain automation elapsed time, including actionability, confirmation and polling waits. '+(process.env.FLOWER_PROFILE?'CPU profiler enabled: diagnostic only, not a performance acceptance run.':'No CPU profiler or synchronous readback during timing.'),coldMedian:cold[Math.floor(cold.length/2)],coldMax:cold.at(-1),runs,errors}
  await writeFile(resolve(out,sceneId+'-startup.json'),JSON.stringify(report,null,2)+'\n');if(errors.length)throw Error(errors.join('\n'))
 }finally{await browser?.close();await new Promise(done=>server.close(done))}
