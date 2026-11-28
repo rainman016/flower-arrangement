@@ -148,20 +148,574 @@
       "provenance": "Sandy Gravel 02 and Forest Floor. Padded atlas of scanned diffuse colour, tangent normal XY and roughness."
     },
     {
-      "id": "distance-creek",
-      "file": "assets/woodland-distance/creek-32c019404bf1.bin",
-      "distanceFor": "assets/environments/creek-garden-v10.glb",
-      "source": "THIRD_PARTY_NOTICES.md",
-      "provenance": "Six views of the authored 3D forest with measured depths from the seated player eye.",
-      "license": "Project generated from the licensed source geometry"
+      "id": "prepared-texture-32f23c10ef067d3ef66b",
+      "file": "assets/prepared/textures/32f23c10ef067d3ef66b.png",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-40cea65d8aa4ee73a93b",
+      "file": "assets/prepared/textures/40cea65d8aa4ee73a93b.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-d50940c167a182230d59",
+      "file": "assets/prepared/textures/d50940c167a182230d59.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-534688fff3618743ac59",
+      "file": "assets/prepared/textures/534688fff3618743ac59.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-7ffadb063c19ba5d0c5a",
+      "file": "assets/prepared/textures/7ffadb063c19ba5d0c5a.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-af65961ba4557bc4cc12",
+      "file": "assets/prepared/textures/af65961ba4557bc4cc12.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-846f90432e25b04282d3",
+      "file": "assets/prepared/textures/846f90432e25b04282d3.png",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-2aff08a8b70a44e850e2",
+      "file": "assets/prepared/textures/2aff08a8b70a44e850e2.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-c0f72314737df93b85b4",
+      "file": "assets/prepared/textures/c0f72314737df93b85b4.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-0880442ddd136fb60b70",
+      "file": "assets/prepared/textures/0880442ddd136fb60b70.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-b28454161ac8e2c796c5",
+      "file": "assets/prepared/textures/b28454161ac8e2c796c5.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-c5cb9ef52b85e9ff8e1d",
+      "file": "assets/prepared/textures/c5cb9ef52b85e9ff8e1d.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-50a4b83aa65fa7bb2446",
+      "file": "assets/prepared/textures/50a4b83aa65fa7bb2446.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-e3294ef5a46918906653",
+      "file": "assets/prepared/textures/e3294ef5a46918906653.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-f8072f9fd71489a96762",
+      "file": "assets/prepared/textures/f8072f9fd71489a96762.png",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-f171be5e0ef41395c0ef",
+      "file": "assets/prepared/textures/f171be5e0ef41395c0ef.png",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-db01ae347c2a7a58ca65",
+      "file": "assets/prepared/textures/db01ae347c2a7a58ca65.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-d73a6fb09a471a8359e5",
+      "file": "assets/prepared/textures/d73a6fb09a471a8359e5.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-af0d63905ba3c8d7c3d1",
+      "file": "assets/prepared/textures/af0d63905ba3c8d7c3d1.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-2df355ea960973266467",
+      "file": "assets/prepared/textures/2df355ea960973266467.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-1d28eaf560c84fc17126",
+      "file": "assets/prepared/textures/1d28eaf560c84fc17126.png",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-bc45652a098bec72b7cd",
+      "file": "assets/prepared/textures/bc45652a098bec72b7cd.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-82ed67e9d00356158f1c",
+      "file": "assets/prepared/textures/82ed67e9d00356158f1c.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-28f438547be2f71a6436",
+      "file": "assets/prepared/textures/28f438547be2f71a6436.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-3ee05307dfd90c61a725",
+      "file": "assets/prepared/textures/3ee05307dfd90c61a725.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-c0933235440462d32b8e",
+      "file": "assets/prepared/textures/c0933235440462d32b8e.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-89ae1a823bc2342c85b7",
+      "file": "assets/prepared/textures/89ae1a823bc2342c85b7.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-4ff05f839a02893efbcd",
+      "file": "assets/prepared/textures/4ff05f839a02893efbcd.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-705957191f98d6ad4dda",
+      "file": "assets/prepared/textures/705957191f98d6ad4dda.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-a993c464e1e371fd21a9",
+      "file": "assets/prepared/textures/a993c464e1e371fd21a9.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-ab3d47f3d75eeb1fb3ba",
+      "file": "assets/prepared/textures/ab3d47f3d75eeb1fb3ba.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-3a70045ea7da221eb08b",
+      "file": "assets/prepared/textures/3a70045ea7da221eb08b.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-3aa1803f6600ef56620e",
+      "file": "assets/prepared/textures/3aa1803f6600ef56620e.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-fb7ce4a7096fc4d3c157",
+      "file": "assets/prepared/textures/fb7ce4a7096fc4d3c157.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-a8e4f890a57608e5dccf",
+      "file": "assets/prepared/textures/a8e4f890a57608e5dccf.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-42a0b6291548b4797436",
+      "file": "assets/prepared/textures/42a0b6291548b4797436.png",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-19cdc047eaae2ce0fb78",
+      "file": "assets/prepared/textures/19cdc047eaae2ce0fb78.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-405834fd11872fcc74ec",
+      "file": "assets/prepared/textures/405834fd11872fcc74ec.jpg",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
     },
     {
       "id": "distance-bamboo",
-      "file": "assets/woodland-distance/bamboo-1944d35df014.bin",
+      "file": "assets/woodland-distance/bamboo-fc3e54009127.bin",
       "distanceFor": "assets/environments/bamboo-garden-v17.glb",
       "source": "scripts/capture-woodland-face.ts",
       "provenance": "Six views of the authored 3D forest with measured depths from the seated player eye.",
       "license": "Project generated from the licensed source geometry"
+    },
+    {
+      "id": "distance-creek",
+      "file": "assets/woodland-distance/creek-da5df13eb566.bin",
+      "distanceFor": "assets/environments/creek-garden-v10.glb",
+      "source": "scripts/capture-woodland-face.ts",
+      "provenance": "Six views of the authored 3D forest with measured depths from the seated player eye.",
+      "license": "Project generated from the licensed source geometry"
+    },
+    {
+      "id": "prepared-bamboo",
+      "file": "assets/prepared/bamboo-f91eb263708f.pns",
+      "preparedTextures": [
+        "prepared-texture-32f23c10ef067d3ef66b",
+        "prepared-texture-40cea65d8aa4ee73a93b",
+        "prepared-texture-d50940c167a182230d59",
+        "prepared-texture-534688fff3618743ac59",
+        "prepared-texture-7ffadb063c19ba5d0c5a",
+        "prepared-texture-af65961ba4557bc4cc12",
+        "prepared-texture-846f90432e25b04282d3",
+        "prepared-texture-2aff08a8b70a44e850e2",
+        "prepared-texture-c0f72314737df93b85b4",
+        "prepared-texture-0880442ddd136fb60b70",
+        "prepared-texture-b28454161ac8e2c796c5",
+        "prepared-texture-c5cb9ef52b85e9ff8e1d",
+        "prepared-texture-50a4b83aa65fa7bb2446",
+        "prepared-texture-e3294ef5a46918906653",
+        "prepared-texture-f8072f9fd71489a96762",
+        "prepared-texture-f171be5e0ef41395c0ef",
+        "prepared-texture-db01ae347c2a7a58ca65",
+        "prepared-texture-d73a6fb09a471a8359e5",
+        "prepared-texture-af0d63905ba3c8d7c3d1",
+        "prepared-texture-2df355ea960973266467",
+        "prepared-texture-1d28eaf560c84fc17126",
+        "prepared-texture-bc45652a098bec72b7cd",
+        "prepared-texture-82ed67e9d00356158f1c",
+        "prepared-texture-22fec6c85acb55409160",
+        "prepared-texture-bdeb2d43d2cf92dc499b",
+        "prepared-texture-c5da4a44aba8b84e9fa8",
+        "prepared-texture-ecb9aabde5b32b038646",
+        "prepared-texture-ada135ac1799e5cc4472",
+        "prepared-texture-7162fa847908bdcdcad6",
+        "prepared-texture-849af32e36914904d010",
+        "prepared-texture-c93a2f224feec6e6ae3c",
+        "prepared-texture-a4b8b12622cb92e9cb75",
+        "prepared-texture-ac13c0648d9495758e41",
+        "prepared-texture-ffe59bc93581c5826a1e"
+      ],
+      "preparedFor": "assets/environments/bamboo-garden-v17.glb",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Actual prepared 3D geometry, instances, textures and shader parameters. No screenshot background.",
+      "license": "Project generated from the licensed source geometry"
+    },
+    {
+      "id": "prepared-texture-22fec6c85acb55409160",
+      "file": "assets/prepared/textures/22fec6c85acb55409160.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-bdeb2d43d2cf92dc499b",
+      "file": "assets/prepared/textures/bdeb2d43d2cf92dc499b.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-c5da4a44aba8b84e9fa8",
+      "file": "assets/prepared/textures/c5da4a44aba8b84e9fa8.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-ecb9aabde5b32b038646",
+      "file": "assets/prepared/textures/ecb9aabde5b32b038646.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-ada135ac1799e5cc4472",
+      "file": "assets/prepared/textures/ada135ac1799e5cc4472.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-7162fa847908bdcdcad6",
+      "file": "assets/prepared/textures/7162fa847908bdcdcad6.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-849af32e36914904d010",
+      "file": "assets/prepared/textures/849af32e36914904d010.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-c93a2f224feec6e6ae3c",
+      "file": "assets/prepared/textures/c93a2f224feec6e6ae3c.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-a4b8b12622cb92e9cb75",
+      "file": "assets/prepared/textures/a4b8b12622cb92e9cb75.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-ac13c0648d9495758e41",
+      "file": "assets/prepared/textures/ac13c0648d9495758e41.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-ffe59bc93581c5826a1e",
+      "file": "assets/prepared/textures/ffe59bc93581c5826a1e.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-creek",
+      "file": "assets/prepared/creek-ef8bc9dd549a.pns",
+      "preparedTextures": [
+        "prepared-texture-32f23c10ef067d3ef66b",
+        "prepared-texture-40cea65d8aa4ee73a93b",
+        "prepared-texture-d50940c167a182230d59",
+        "prepared-texture-534688fff3618743ac59",
+        "prepared-texture-7ffadb063c19ba5d0c5a",
+        "prepared-texture-af65961ba4557bc4cc12",
+        "prepared-texture-846f90432e25b04282d3",
+        "prepared-texture-28f438547be2f71a6436",
+        "prepared-texture-3ee05307dfd90c61a725",
+        "prepared-texture-c5cb9ef52b85e9ff8e1d",
+        "prepared-texture-0880442ddd136fb60b70",
+        "prepared-texture-b28454161ac8e2c796c5",
+        "prepared-texture-c0933235440462d32b8e",
+        "prepared-texture-c6dceb8ecefbdb7b8de0",
+        "prepared-texture-db96fbf6877cc1b61685",
+        "prepared-texture-85a74aaccdd1b783bb4d",
+        "prepared-texture-f171be5e0ef41395c0ef",
+        "prepared-texture-db01ae347c2a7a58ca65",
+        "prepared-texture-d73a6fb09a471a8359e5",
+        "prepared-texture-1d28eaf560c84fc17126",
+        "prepared-texture-89ae1a823bc2342c85b7",
+        "prepared-texture-4ff05f839a02893efbcd",
+        "prepared-texture-705957191f98d6ad4dda",
+        "prepared-texture-a993c464e1e371fd21a9",
+        "prepared-texture-ab3d47f3d75eeb1fb3ba",
+        "prepared-texture-3a70045ea7da221eb08b",
+        "prepared-texture-3aa1803f6600ef56620e",
+        "prepared-texture-fb7ce4a7096fc4d3c157",
+        "prepared-texture-a8e4f890a57608e5dccf",
+        "prepared-texture-42a0b6291548b4797436",
+        "prepared-texture-19cdc047eaae2ce0fb78",
+        "prepared-texture-405834fd11872fcc74ec",
+        "prepared-texture-4dc430920a8892e4b891",
+        "prepared-texture-57fa8bea16d448a00a0a",
+        "prepared-texture-5403ea087713d02ae5b1",
+        "prepared-texture-5a5a6905c13ffd2cc3d3",
+        "prepared-texture-2c431e70133679ecc3a6",
+        "prepared-texture-49a4e5b793c7eda9d3c2",
+        "prepared-texture-86af556395effdf780f0",
+        "prepared-texture-f1b1f40f30898524ff07",
+        "prepared-texture-34d35a1b5bca126e1de7",
+        "prepared-texture-8a281afd5443128b0698",
+        "prepared-texture-cc4d0322dbc9d88ff647",
+        "prepared-texture-aeac48da76280289cf1c",
+        "prepared-texture-a3de473b3de2f2875f26"
+      ],
+      "preparedFor": "assets/environments/creek-garden-v10.glb",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Actual prepared 3D geometry, instances, textures and shader parameters. No screenshot background.",
+      "license": "Project generated from the licensed source geometry"
+    },
+    {
+      "id": "prepared-texture-c6dceb8ecefbdb7b8de0",
+      "file": "assets/prepared/textures/c6dceb8ecefbdb7b8de0.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-db96fbf6877cc1b61685",
+      "file": "assets/prepared/textures/db96fbf6877cc1b61685.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-85a74aaccdd1b783bb4d",
+      "file": "assets/prepared/textures/85a74aaccdd1b783bb4d.png",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-4dc430920a8892e4b891",
+      "file": "assets/prepared/textures/4dc430920a8892e4b891.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-57fa8bea16d448a00a0a",
+      "file": "assets/prepared/textures/57fa8bea16d448a00a0a.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-5403ea087713d02ae5b1",
+      "file": "assets/prepared/textures/5403ea087713d02ae5b1.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-5a5a6905c13ffd2cc3d3",
+      "file": "assets/prepared/textures/5a5a6905c13ffd2cc3d3.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-2c431e70133679ecc3a6",
+      "file": "assets/prepared/textures/2c431e70133679ecc3a6.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-49a4e5b793c7eda9d3c2",
+      "file": "assets/prepared/textures/49a4e5b793c7eda9d3c2.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-86af556395effdf780f0",
+      "file": "assets/prepared/textures/86af556395effdf780f0.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-f1b1f40f30898524ff07",
+      "file": "assets/prepared/textures/f1b1f40f30898524ff07.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-34d35a1b5bca126e1de7",
+      "file": "assets/prepared/textures/34d35a1b5bca126e1de7.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-8a281afd5443128b0698",
+      "file": "assets/prepared/textures/8a281afd5443128b0698.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-cc4d0322dbc9d88ff647",
+      "file": "assets/prepared/textures/cc4d0322dbc9d88ff647.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-aeac48da76280289cf1c",
+      "file": "assets/prepared/textures/aeac48da76280289cf1c.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
+    },
+    {
+      "id": "prepared-texture-a3de473b3de2f2875f26",
+      "file": "assets/prepared/textures/a3de473b3de2f2875f26.webp",
+      "source": "scripts/bake-prepared-nature.mjs",
+      "provenance": "Original encoded prepared texture",
+      "license": "Project generated from licensed source textures"
     }
   ]
 }
