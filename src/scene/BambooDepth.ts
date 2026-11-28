@@ -84,9 +84,10 @@ export function keepBambooPlant(kind:string,matrix:Matrix4){
   if(kind.startsWith('grove_'))return true
   if(/rock|ledge|rootwood/.test(kind))return r<12
   if(kind.startsWith('bryophyte_'))return r<5.5
-  if(r<7.5)return true
+  if(r<13.5)return true
   const pocket=Math.sin(x*14.7+z*31.3)*43758.5453
   const sample=pocket-Math.floor(pocket)
+  if(z> -2||Math.abs(x)>7.5)return r<27&&sample<.40
   return z< -4&&z> -23&&Math.abs(x-bambooPathCenter(z))<4.1&&sample<(r<12?.29:.12)
 }
 

@@ -97,8 +97,12 @@ export function filterWoodlandSun(material:MeshStandardMaterial,openings:Texture
   material.customProgramCacheKey=()=>key+'-filtered-forest-'+id+'-'+leaf+'-'+lamina+'-'+Boolean(skyView)+'-'+dryTissue
 }
 
+// Both foliage and the projector use identical immutable pixels. Texture clones
+// share the source while keeping independent transforms and disposal lifetimes.
+let canopyTemplate:CanvasTexture|undefined
 // A fixed canopy opening modulates the local sun; movable geometry still casts its own shadow.
 export function canopyLight(){
+  if(canopyTemplate)return canopyTemplate.clone()
   const canvas=document.createElement('canvas');canvas.width=canvas.height=512
   const g=canvas.getContext('2d')!
   let seed=19283
@@ -114,5 +118,6 @@ export function canopyLight(){
     }
   }
   const texture=new CanvasTexture(canvas);texture.wrapS=texture.wrapT=RepeatWrapping
-  return texture
+  canopyTemplate=texture
+  return texture.clone()
 }

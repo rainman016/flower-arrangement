@@ -21,6 +21,7 @@ import {bambooCulmLOD,bambooLeafLOD,bambooMiddleGrove,bambooOuterGround,continue
 import {lowWoodlandQuality} from './render-quality'
 import {bambooCanopy} from './BambooCanopy'
 import {bambooSurround,seatBambooGroves,seatBambooRocks} from './BambooSurround'
+import {capturePreparedNature} from './prepared-nature-capture'
 import {bambooBanks} from './BambooBanks'
 import {bambooSunlight,bambooSunSampling,bambooSunResponse,type BambooSunlight} from './BambooSunlight'
 
@@ -315,7 +316,7 @@ function RainRipples({time,eave,span,heightAt}:{time:Time;eave:Vector3;span:numb
   return <mesh name="rain_ground_ripples" geometry={resources.geometry} material={resources.material} frustumCulled={false} raycast={()=>null}/>
 }
 
-export default function NatureEnvironment({model,kit,sceneId,floor,bankAtlas,distance}:{model:GLTF;kit:GLTF;sceneId:SceneId;floor:Texture;bankAtlas?:Texture;distance?:import('three').Group}){
+export default function NatureEnvironment({model,kit,sceneId,floor,bankAtlas,distance}:{model:Pick<GLTF,'scene'>;kit:Pick<GLTF,'scene'>;sceneId:SceneId;floor:Texture;bankAtlas?:Texture;distance?:import('three').Group}){
   const {gl,camera,invalidate}=useThree(),time=useMemo<Time>(()=>({value:0}),[model]),active=useRef(false)
   const nature=useMemo(()=>{
     if(bankAtlas)bankAtlas.anisotropy=Math.min(8,gl.capabilities.getMaxAnisotropy())
@@ -344,12 +345,14 @@ export default function NatureEnvironment({model,kit,sceneId,floor,bankAtlas,dis
     }
     const heightAt=shaped?.at??originalGround
     if(openBambooPath&&heightAt)bambooMiddleGrove(root,heightAt)
-    if(openBambooPath&&heightAt)bambooSurround(root,heightAt)
+    if(openBambooPath&&heightAt)bambooSurround(root,heightAt,kit.scene)
     const releaseBambooOuter=openBambooPath&&heightAt?bambooOuterGround(root,heightAt,floor):null
     const bankMesh=root.getObjectByName('root_bank_soil')
     const bankHeight=bankAtlas&&heightAt&&bankMesh instanceof Mesh?creekBankHeight(bankMesh,heightAt,channel instanceof Mesh?channel:undefined):null
     const grass=composed&&heightAt?detailForestFloor(root,kit.scene,heightAt,sceneId,bankHeight):null
     if(openBambooPath&&heightAt)seatBambooRocks(root,kit.scene,heightAt)
+    if(sceneId==='creek'&&heightAt&&bankHeight)seatBambooRocks(root,kit.scene,(x,z)=>Math.max(heightAt(x,z),bankHeight(x,z)),
+      anchor=>{const p=anchor.getWorldPosition(new Vector3());return p.z>-.8||Math.abs(p.x)>4.5})
     if(openBambooPath&&heightAt)seatBambooGroves(root,heightAt)
     if(sceneId==='creek'&&bankMesh instanceof Mesh&&channel instanceof Mesh)deepenCreekRun(bankMesh,terrain,channel,root)
     const bambooSun=sceneId==='bamboo'&&heightAt?bambooSunlight(heightAt):undefined
@@ -979,6 +982,7 @@ export default function NatureEnvironment({model,kit,sceneId,floor,bankAtlas,dis
     const releaseShingle=bankAtlas&&bankHeight&&soilShade?creekShingle(root,bankHeight,soilShade,waterLevel.y,bankAtlas,openings,time,kit.scene,model.scene):null
     const releaseDistance=distance?selectWoodlandDistance(root,false,sceneId==='bamboo'&&distance.userData.layeredCapture===true):undefined
     if(distance)root.add(distance)
+    capturePreparedNature(root,time,oldWater instanceof Mesh?oldWater:undefined,waterLevel.y)
     root.userData.distantCanopy=[...farLeaves].map(([src,lod])=>[src.index?.count,lod.index?.count])
     return {root,owned,instancesOwned,releaseDistance,water,eave,span,heightAt,soilShade,grass,openings,farLeaves,carved,releaseLitter,releaseShingle,shaped,skyView,releaseHorizon,bambooGround,releaseBambooOuter,releaseBambooCanopy,bambooBank}
   },[model,kit,sceneId,time,gl,floor,bankAtlas,camera,distance])

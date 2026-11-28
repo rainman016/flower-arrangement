@@ -14,13 +14,19 @@ export function bambooVerge(root:Object3D, heightAt:HeightAt, leafGaps:Vector3[]
   const points:number[]=[],colours:number[]=[],indices:number[]=[],bends:number[]=[],phases:number[]=[]
   let grainCount=0,tufts=0
   function shoot(x:number,z:number,h:number,angle:number,tint:number){
+    const near=z> -3.1&&Math.abs(x)<2.8
+    const pocket=.5+.5*Math.sin(x*4.7+z*3.1+.7*Math.sin(z*2.4))
+    // Low, broken pockets beside the desk; keep the distinct farther fern groups.
+    if(near&&z> -2.05&&Math.abs(x)>1.0&&pocket<.40){random();random();random();return}
+    if(near)h*=.78
     const dx=Math.cos(angle),dz=Math.sin(angle),bed=heightAt(x,z)-.002
     const lean=h*(.34+random()*.76),width=.0016+h*(.023+random()*.019)
     const twist=(random()-.5)*1.6,base=points.length/3
     tone.setHex(tint)
-    for(let row=0;row<4;row++){
-      const t=[0,.38,.73,1][row],turn=angle+twist*t,sx=-Math.sin(turn),sz=Math.cos(turn)
-      const w=width*[.42,1,.65,.018][row],y=bed+h*(t-.46*t*t*t),bend=lean*t*t
+    const steps=near?[0,.55,1]:[0,.38,.73,1],widths=near?[.42,1,.018]:[.42,1,.65,.018]
+    for(let row=0;row<steps.length;row++){
+      const t=steps[row],turn=angle+twist*t,sx=-Math.sin(turn),sz=Math.cos(turn)
+      const w=width*widths[row],y=bed+h*(t-.46*t*t*t),bend=lean*t*t
       for(let col=0;col<3;col++){
         const cross=(col-1)*w,fold=col===1?w*.46:0
         points.push(x+dx*(bend+fold)+sx*cross,y+fold,z+dz*(bend+fold)+sz*cross)

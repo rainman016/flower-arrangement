@@ -1,3 +1,4 @@
+import PreparedNature from './PreparedNature'
 import { useEffect, useRef } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
 import { AgXToneMapping, Euler, PerspectiveCamera, PCFShadowMap } from 'three'
@@ -48,7 +49,7 @@ export default function GameCanvas({assets,onReady,onCapture}:{assets:SceneAsset
     fallback={<div className="scene-fallback" role="alert">浏览器暂不支持三维显示，请启用硬件加速后重试。</div>}>
     <SceneMotion><FixedEye assets={assets} onCapture={onCapture}/>
     <SceneLighting sceneId={assets.sceneId} light={assets.light}/>
-    <NatureEnvironment model={assets.environment} kit={assets.natureKit} sceneId={assets.sceneId} floor={assets.floor} bankAtlas={assets.bankAtlas}/>
+    {assets.prepared?<PreparedNature prepared={assets.prepared}/>:<NatureEnvironment model={assets.environment} kit={assets.natureKit} sceneId={assets.sceneId} floor={assets.floor} bankAtlas={assets.bankAtlas} distance={assets.distance}/>}
     <Workbench assets={assets} onReady={onReady}/></SceneMotion>
   </Canvas>
 }

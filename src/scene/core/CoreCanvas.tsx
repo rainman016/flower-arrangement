@@ -1,8 +1,11 @@
+import {ResolutionChange} from './ResolutionChange'
+import {runtimeMark} from '../../services/runtime-timing'
+import {FrameRendering} from '../FrameRendering'
 import {MeshStandardMaterial} from 'three'
 import {ShaderChunk} from 'three'
 import {CatmullRomCurve3} from 'three'
 import {FlowerFocus} from './FlowerFocus'
-import { useEffect, useLayoutEffect, useMemo, useRef, type RefObject } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { AgXToneMapping, Box3, Euler, Group, Mesh, MeshPhysicalMaterial, Object3D, PCFShadowMap, PerspectiveCamera, Quaternion, Raycaster, Vector3 } from 'three'
 import { BASE_Y } from '../../content/catalog'
@@ -12,8 +15,10 @@ import type { Debris, FlowerState } from '../../game/types'
 import type { SceneAssets } from '../../services/scene-assets'
 import { useCoreStore } from '../../state/core-store'
 import NatureEnvironment from '../NatureEnvironment'
+import PreparedNature from '../PreparedNature'
 import SceneLighting from '../SceneLighting'
-import {startingPixelRatio} from '../render-quality'
+import {lowWoodlandQuality,qualityChoice,startingPixelRatio} from '../render-quality'
+import {readRenderBudget} from '../../services/render-budget'
 import {InteractionResolution} from './InteractionResolution'
 import {SceneWarmup} from './SceneWarmup'
 import PropGlass from '../PropGlass'
@@ -21,7 +26,7 @@ import { SceneMotion } from '../motion/SceneMotion'
 import { centerObject, createPiece, createPlant, disposeGeometry } from './botanical-geometry'
 import { coreFlowerPose, heldScissors, SCISSORS_REST } from './core-transforms'
 import CoreControls from './CoreControls'
-import { SeatCloth } from './SeatCloth'
+import { SeatCloth, useSeatClothTexture } from './SeatCloth'
 import { flowerPortraits } from './flower-portraits'
 import type { FlowerKind } from '../../game/types'
 import { BOX, DESK, WOOD_FRONT } from '../../game/desk-layout'
@@ -405,8 +410,8 @@ function Contents({assets,onReady,onWorld,onExport,contextRef}:CanvasProps) {
   return <>
     <FlowerFocus world={world}/>
     <InteractionResolution world={world}/>
-    <SceneLighting sceneId={assets.sceneId} light={assets.light}/>
-    <NatureEnvironment model={assets.environment} kit={assets.natureKit} sceneId={assets.sceneId} floor={assets.floor} bankAtlas={assets.bankAtlas} distance={assets.distance}/>
+    <SceneLighting sceneId={assets.sceneId} light={assets.light} sky={assets.sky}/>
+    {assets.prepared?<PreparedNature prepared={assets.prepared}/>:<NatureEnvironment model={assets.environment} kit={assets.natureKit} sceneId={assets.sceneId} floor={assets.floor} bankAtlas={assets.bankAtlas} distance={assets.distance}/>}
     <group name="workbench_and_tools">
     <Tools assets={assets} world={world}/>
     <mesh ref={o=>{world.stream=o}} visible={false}><cylinderGeometry args={[.0017,.0021,1,12]}/><meshStandardMaterial color="#a8d5d0" transparent opacity={.74} roughness={.08}/></mesh>
@@ -422,12 +427,25 @@ function Contents({assets,onReady,onWorld,onExport,contextRef}:CanvasProps) {
     </group>
     <CoreControls world={world} kit={assets.kit.scene}/>
     {work.tools&&<RitualControls world={world}/>}
-    <SceneWarmup identity={assets.environment} onReady={onReady}/>
+    <SceneWarmup identity={assets.environment} cacheKey={assets.prepared?assets.sceneId+':'+assets.prepared.root.uuid:undefined} texturesReady={assets.prepared?.ready} textureUploads={assets.prepared?.uploads} onReady={onReady}/>
   </>
 }
+// Draw overlapping earth after opaque props and foliage so depth rejects hidden soil.
+const groundOrder=(name:string)=>name==='root_bank_soil'?1:name==='terrain'?2:name==='bamboo_outer_soil'?3:0
 export default function CoreCanvas(props:CanvasProps) {
-  return <Canvas shadows={{type:PCFShadowMap}} frameloop="demand" dpr={startingPixelRatio(window.innerWidth,window.innerHeight,window.devicePixelRatio)} camera={{position:TABLE_VIEW.eye,fov:TABLE_VIEW.desktopFov,near:.015,far:60}}
+  // Suspend outside Canvas so this small image cannot discard a prepared forest.
+  useSeatClothTexture()
+  const [ratio,setRatio]=useState(()=>{
+    runtimeMark('canvas-start')
+    const width=window.innerWidth,height=window.innerHeight,device=window.devicePixelRatio,ceiling=startingPixelRatio(width,height,device)
+    const key=props.assets.prepared?props.assets.sceneId+':'+props.assets.prepared.root.uuid+':'+(qualityChoice??'auto'):undefined
+    return (lowWoodlandQuality?readRenderBudget(key,width,height,device,ceiling)?.dpr:undefined)??ceiling
+  })
+  // Mount paused: a queued demand frame can still run while compileAsync waits.
+  // SceneWarmup enables demand rendering only after all material variants are ready.
+  return <Canvas shadows={{type:PCFShadowMap}} frameloop="never" dpr={ratio} camera={{position:TABLE_VIEW.eye,fov:TABLE_VIEW.desktopFov,near:.015,far:60}}
+    onCreated={({gl})=>{runtimeMark('canvas-created');gl.setOpaqueSort((a,b)=>a.groupOrder-b.groupOrder||a.renderOrder-b.renderOrder||groundOrder(a.object.name)-groundOrder(b.object.name)||a.z-b.z||a.material.id-b.material.id||a.id-b.id)}}
     gl={{antialias:true,toneMapping:AgXToneMapping,preserveDrawingBuffer:true}} fallback={<p role="alert">浏览器暂不支持三维显示，请启用硬件加速。</p>}>
-    <SceneMotion><Contents {...props}/></SceneMotion>
+    <ResolutionChange.Provider value={setRatio}><FrameRendering><SceneMotion><Contents {...props}/></SceneMotion></FrameRendering></ResolutionChange.Provider>
   </Canvas>
 }

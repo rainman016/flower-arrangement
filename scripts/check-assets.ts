@@ -1,3 +1,5 @@
+import {gunzipSync} from 'node:zlib'
+import {decodePreparedData} from '../src/services/prepared-binary.ts'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
@@ -5,13 +7,28 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import { Texture } from 'three'
 const root=process.cwd()
 const manifest=JSON.parse(readFileSync(resolve(root,process.env.FLOWER_ASSET_MANIFEST||'public/assets/manifest.json'),'utf8'))
-let total=0
+let total=0,authoringTotal=0
+const sizes=new Map<string,number>()
 const ids=new Set<string>()
 for(const asset of manifest.assets){
   if(ids.has(asset.id)||!asset.file.startsWith('assets/')||asset.file.includes('..'))throw new Error('Invalid catalog entry')
   ids.add(asset.id)
   const buffer=readFileSync(resolve(root,'public',asset.file))
-  if(asset.file.endsWith('.glb')){
+  if(asset.file.endsWith('.pns')){
+    const data=gunzipSync(buffer),json=await decodePreparedData(data.buffer.slice(data.byteOffset,data.byteOffset+data.byteLength))
+    if(asset.id!=='prepared-'+json.prepared.sceneId)throw Error('Prepared scene identity mismatch')
+    const source=manifest.assets.find((a:{id:string})=>a.id==='environment-'+json.prepared.sceneId)
+    if(asset.preparedFor!==(source?.originalFile??source?.file))throw Error('Prepared source mismatch')
+    const references=new Set((json.images??[]).flatMap((i:any)=>i.url?.$asset?[i.url.$asset]:[]))
+    if(references.size!==(asset.preparedTextures??[]).length||[...references].some(id=>!asset.preparedTextures?.includes(id)||!manifest.assets.some((a:any)=>a.id===id)))throw Error('Prepared texture references mismatch')
+    for(const geometry of json.geometries){
+      const position=geometry.data.attributes.position
+      if(position.itemSize!==3||!ArrayBuffer.isView(position.array)||position.array.length%3||!position.array.every(Number.isFinite))throw Error('Invalid prepared position array')
+      const count=position.array.length/3
+      for(const a of Object.values(geometry.data.attributes) as any[])if(!a.isInstancedBufferAttribute&&(a.array.length/a.itemSize!==count||!a.array.every(Number.isFinite)))throw Error('Invalid prepared attribute')
+      if(geometry.data.index&&!geometry.data.index.array.every((i:number)=>Number.isInteger(i)&&i>=0&&i<count))throw Error('Invalid prepared index')
+    }
+  }else if(asset.file.endsWith('.glb')){
     if(buffer.readUInt32LE(0)!==0x46546c67||buffer.readUInt32LE(4)!==2||buffer.readUInt32LE(8)!==buffer.length)throw new Error(asset.id+': invalid GLB')
     const gltf=JSON.parse(buffer.subarray(20,20+buffer.readUInt32LE(12)).toString('utf8'))
     const names=new Set(gltf.nodes.map((n:{name:string})=>n.name))
@@ -49,13 +66,22 @@ for(const asset of manifest.assets){
     if(!buffer.subarray(0,100).toString('ascii').includes('FORMAT=32-bit_rle_rgbe'))throw Error('Invalid Radiance lighting map')
   }else if(asset.file.endsWith('.png')){
     if(buffer.subarray(1,4).toString()!=='PNG')throw new Error('Invalid PNG')
+  }else if(asset.file.endsWith('.webp')){
+    if(buffer.toString('ascii',0,4)!=='RIFF'||buffer.toString('ascii',8,12)!=='WEBP')throw Error('Invalid WebP')
   }else if(asset.file.endsWith('.ogg')){
     if(buffer.subarray(0,4).toString()!=='OggS'||!buffer.subarray(0,256).includes(Buffer.from('OpusHead')))throw new Error('Invalid Opus audio')
   }else if(buffer[0]!==255||buffer[1]!==216)throw new Error('Invalid JPEG')
-  total+=buffer.length
-  console.log(asset.id+': '+Math.round(buffer.length/1024)+' KB, verified')
+  total+=buffer.length;sizes.set(asset.id,buffer.length)
+  if(!asset.id.startsWith('prepared-'))authoringTotal+=buffer.length
+  if(!asset.id.startsWith('prepared-texture-'))console.log(asset.id+': '+Math.round(buffer.length/1024)+' KB, verified')
 }
-// Shared hand rig and six lazy audio tracks add to the existing 23 MiB art catalog.
-if(total>30*1024*1024)throw new Error('Asset budget exceeded')
+// Authoring/fallback files retain their existing catalog cap. Prepared scenes
+// replace their source kit, full environment and distance file on the load path.
+if(authoringTotal>30*1024*1024)throw new Error('Authoring asset budget exceeded')
+for(const scene of ['bamboo','creek'])if(sizes.has('prepared-'+scene)){
+  const runtime=['prop-kit','woodland-light','preview-bamboo','preview-creek','audio-nature-'+scene,'prepared-'+scene,...(manifest.assets.find((a:any)=>a.id==='prepared-'+scene)?.preparedTextures??[])].reduce((sum,id)=>sum+(sizes.get(id)??0),0)
+  if(runtime>20*1024*1024)throw Error(scene+': prepared load budget exceeded')
+  console.log(scene+' prepared load: '+Math.round(runtime/1024)+' KB (20 MiB cap)')
+}
 console.log('Asset checks passed: '+Math.round(total/1024)+' KB')
 

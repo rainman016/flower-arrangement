@@ -3,6 +3,15 @@ import { Shape, SRGBColorSpace, TextureLoader } from 'three'
 import { DESK } from '../../game/desk-layout'
 import seatMat from './seat-mat.webp?inline'
 
+// Begin with the scene module, before any expensive three-dimensional assembly.
+useLoader.preload(TextureLoader, seatMat)
+export function useSeatClothTexture(){
+  const nap = useLoader(TextureLoader, seatMat)
+  nap.colorSpace = SRGBColorSpace
+  nap.anisotropy = 4
+  return nap
+}
+
 const width = .72
 const depth = .30
 const front = DESK.front - .032
@@ -20,9 +29,7 @@ outline.lineTo(0, ry)
 outline.quadraticCurveTo(0, 0, rx, 0)
 
 export function SeatCloth() {
-  const nap = useLoader(TextureLoader, seatMat)
-  nap.colorSpace = SRGBColorSpace
-  nap.anisotropy = 4
+  const nap = useSeatClothTexture()
   return <mesh name="seat-mat" position={[-width / 2, DESK.top + .00008, front]}
     rotation={[-Math.PI / 2, 0, 0]} scale={[width, depth, 1]} receiveShadow>
     <shapeGeometry args={[outline, 4]} />

@@ -21,6 +21,8 @@ pnpm dev
 
 运行 `pnpm test` 检查规则和几何，`pnpm run check:assets` 检查素材，`pnpm build` 生成静态网站到 dist。网站使用相对路径，可以部署在 GitHub Pages 的项目子目录。本仓库的 Pages 发布源是 gh-pages 分支的根目录。用 `pnpm build:offline` 可另外生成单文件试玩。分发试玩时请同时提供素材说明和生产网页构建生成的 dependency-licenses.md。
 
+环境源码修改后，还需更新默认画质使用的真实三维准备包；构建与验证步骤见 [环境准备与验证](docs/runtime-preparation.md)。
+
 ## 访问统计
 
 在线版支持 Cloudflare Web Analytics。发布者可在构建环境中设置 CLOUDFLARE_WEB_ANALYTICS_SITE 为自己站点的公开标识，再运行 pnpm build。配置后只为上线的 HTML 加入访问统计。游戏进度、祝愿文字和作品图始终留在浏览器内。默认构建及单文件离线试玩均可独立使用。

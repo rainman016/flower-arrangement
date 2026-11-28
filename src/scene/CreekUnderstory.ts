@@ -1,6 +1,6 @@
 import {Box3,Color,InstancedMesh,Matrix4,Mesh,MeshStandardMaterial,Object3D,Vector3,type Texture} from 'three'
 import {filterWoodlandSun} from './CanopyLight.ts'
-import type {HeightAt} from './terrain-height'
+import {terrainSampler,type HeightAt} from './terrain-height'
 
 export function creekUnderstory(root:Object3D,kit:Object3D,garden:Object3D,ground:HeightAt,
   rows:{left:Vector3;right:Vector3}[],level:number,openings:Texture,time:{value:number},placementGround:HeightAt=ground){
@@ -22,15 +22,17 @@ export function creekUnderstory(root:Object3D,kit:Object3D,garden:Object3D,groun
   const pick=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296}
   const pivot=new Object3D(),last=new Vector3(Infinity,0,0)
   let spacing=.57,planted=0
-  function plant(name:string,x:number,z:number,width:number){
+  const terrain=root.getObjectByName('terrain'),surface=terrain instanceof Mesh?terrainSampler(terrain):ground
+  const visibleGround=(x:number,z:number)=>Math.max(ground(x,z),surface(x,z))
+  function plant(name:string,x:number,z:number,width:number,low=false){
     const kind=kinds.find(k=>k.name===name)
-    if(!kind||placementGround(x,z)<level+.025)return
-    const yaw=pick()*Math.PI*2,y=ground(x,z)
+    if(!kind||(low?visibleGround:placementGround)(x,z)<level+.025)return
+    const yaw=pick()*Math.PI*2,y=(low?visibleGround:ground)(x,z)
     if(y<level+.025)return
-    const scale=width/Math.max(kind.size.x,kind.size.z)
-    pivot.position.set(x,y-kind.bounds.min.y*scale-.018,z)
+    const scale=width/Math.max(kind.size.x,kind.size.z),height=low?Math.min(scale,(.28+.18*pick())/Math.max(.01,kind.size.y)):scale
+    pivot.position.set(x,y-kind.bounds.min.y*height-.018,z)
     pivot.rotation.set(0,yaw,0)
-    pivot.scale.setScalar(scale);pivot.updateMatrix()
+    pivot.scale.set(scale,height,scale);pivot.updateMatrix()
     kind.placements.push(pivot.matrix.clone());planted++
   }
   for(const row of rows){
@@ -66,6 +68,20 @@ export function creekUnderstory(root:Object3D,kit:Object3D,garden:Object3D,groun
         x+Math.cos(angle)*r,z+Math.sin(angle)*r,fern?.31+.30*pick():.24+.22*pick())
     }
   }
+  // Broad, low colonies occupy the actual side/rear floor, rather than tall
+  // isolated blades. The seated clearing and the agreed front bank stay open.
+  const beforeSurround=planted
+  for(const [cx,cz,radius] of [[-2.4,.6,.65],[2.4,.7,.7],[-2.7,2.5,.9],[2.8,2.6,.9],
+    [-1.4,4.3,1.1],[.8,4.7,1.2],[3.6,5.1,1.1],[-4.6,1.6,1.3],[5.1,1.6,1.2],
+    [-5.3,5.2,1.4],[5.4,6.4,1.5],[.2,7.8,1.7],[-7,3.8,1.5],[7.1,4.6,1.6],[-3.8,9.2,1.5],[4.1,9.6,1.7]]){
+    for(let i=0;i<10;i++){
+      const angle=pick()*Math.PI*2,r=Math.sqrt(pick())*radius,x=cx+Math.cos(angle)*r,z=cz+Math.sin(angle)*r
+      if(Math.hypot(x,z)<1.9||Math.abs(x)<1.3&&z<2.4)continue
+      const name=i%3===0?'ground_herb_'+i%2:'forest_fern_'+(i%4)
+      plant(name,x,z,.83+.50*pick(),true)
+    }
+  }
+  root.userData.creekSurroundPlants=planted-beforeSurround
   const meshes:InstancedMesh[]=[],materials:MeshStandardMaterial[]=[],tint=new Color()
   for(const kind of kinds){
     if(!kind.placements.length)continue

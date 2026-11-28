@@ -1,16 +1,27 @@
-import {Matrix4,Mesh,Object3D,Vector3} from 'three'
+import {Box3,Matrix4,Mesh,Object3D,Vector3} from 'three'
 import type {HeightAt} from './terrain-height'
 
 /** Continue the authored grove around the player with the same rooted prototypes. */
-export function bambooSurround(root:Object3D,ground:HeightAt){
+export function bambooSurround(root:Object3D,ground:HeightAt,kit?:Object3D){
+  const footprints=new Map<string,{width:number;height:number;base:number}>()
+  for(const kind of ['fern','ground_herb_0','ground_herb_1','sedge_0','understory']){
+    let source=kind==='fern'?kit?.getObjectByName('forest_fern_0'):undefined
+    if(!source)root.traverse(node=>{if(node.userData.gardenPrototype===kind)source=node})
+    if(!source)continue
+    source.updateWorldMatrix(true,true)
+    const box=new Box3(),local=source.userData.gardenPrototype?source.matrixWorld.clone().invert():new Matrix4()
+    source.traverse(node=>{if(node instanceof Mesh){node.geometry.computeBoundingBox();box.union(node.geometry.boundingBox!.clone().applyMatrix4(local.clone().multiply(node.matrixWorld)))}})
+    if(!box.isEmpty()){const size=box.getSize(new Vector3());footprints.set(kind,{width:Math.max(.01,size.x,size.z),height:Math.max(.01,size.y),base:box.min.y})}
+  }
   let seed=81731,planted=0
   const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296}
   const add=(kind:string,x:number,z:number,width:number,height=width)=>{
     const plant=new Object3D();plant.name='bamboo_surround_'+planted++
     plant.userData.prototype=kind
-    plant.position.set(x,ground(x,z)-.028,z)
+    const footprint=footprints.get(kind),sx=footprint?width/footprint.width:width,sy=footprint?height/footprint.height:height
+    plant.position.set(x,ground(x,z)-.028-(footprint?.base??0)*sy,z)
     plant.rotation.set((random()-.5)*.07,random()*Math.PI*2,(random()-.5)*.07)
-    plant.scale.set(width,height,width*(.83+random()*.30))
+    plant.scale.set(sx,sy,sx*(.83+random()*.30))
     root.add(plant);plant.updateMatrixWorld(true)
   }
   const herbs=['fern','ground_herb_0','ground_herb_1','sedge_0','understory']
@@ -23,9 +34,9 @@ export function bambooSurround(root:Object3D,ground:HeightAt){
       if(Math.cos(angle)>.20)continue
       for(let j=0;j<4;j++){
         const a=angle+(random()-.5)*.27,r=radius+(random()-.5)*.65
-        const x=Math.sin(a)*r,z=-Math.cos(a)*r,size=.51+random()*.36
+        const x=Math.sin(a)*r,z=-Math.cos(a)*r,size=.80+random()*.40
         if(Math.hypot(x,z)<1.95)continue
-        add(j%2===0?'fern':herbs[1+k%3],x,z,size,size*(.52+random()*.24))
+        add(j%2===0?'fern':herbs[1+k%3],x,z,size,.24+random()*.16)
       }
     }
   }
@@ -46,8 +57,8 @@ export function bambooSurround(root:Object3D,ground:HeightAt){
         const a=random()*Math.PI*2,d=Math.sqrt(random())*(band<2?1.85:2.50)
         const px=x+Math.cos(a)*d,pz=z+Math.sin(a)*d
         if(Math.hypot(px,pz)<3.3)continue
-        const size=.65+random()*.53
-        add(herbs[(k+j)%herbs.length],px,pz,size,size*(.73+random()*.20))
+        const size=.95+random()*.55
+        add(herbs[(k+j)%herbs.length],px,pz,size,.29+random()*.27)
       }
     }
   }
@@ -59,11 +70,17 @@ export function bambooSurround(root:Object3D,ground:HeightAt){
     if(!/^(fern|understory|ground_herb_\d|sedge_\d)$/.test(node.userData.prototype??''))return
     node.getWorldPosition(p)
     if(node.name.startsWith('bamboo_surround_'))return
-    if(p.z< -2.9||p.z>-.9||Math.abs(p.x)<1.2||Math.abs(p.x)>3.4)return
+    if(p.z< -3.5||p.z>-.9||Math.abs(p.x)<1.15||Math.abs(p.x)>3.4||Math.hypot(p.x,p.z)>3.9)return
     const sample=Math.sin(p.x*24.71+p.z*13.13)*43758.5453
-    const fraction=sample-Math.floor(sample)
-    if(Math.abs(p.x)<1.9&&fraction<.30){node.userData.bambooOmit=true;omitted++;return}
-    node.scale.multiplyScalar(node.userData.prototype==='fern'?.82:.70)
+    const fraction=sample-Math.floor(sample),front=p.z> -2.35,fern=node.userData.prototype==='fern'
+    if(front&&Math.abs(p.x)<2.1&&fraction<.42){node.userData.bambooOmit=true;omitted++;return}
+    const width=fern?.84:front?.67:.81,height=fern?(p.x>0?.70:.82):front?.49:.66
+    node.scale.multiply(new Vector3(width,height,width))
+    if(front){
+      const oldGround=ground(p.x,p.z)
+      p.x+=Math.sign(p.x)*.07;p.z-=.13;p.y+=ground(p.x,p.z)-oldGround
+      node.position.copy(node.parent!.worldToLocal(p))
+    }
     node.updateMatrixWorld(true);shortened++
   })
   root.userData.bambooSurround={planted,shortened,omitted}
@@ -96,14 +113,14 @@ export function seatBambooGroves(root:Object3D,ground:HeightAt){
 }
 
 /** Settle the actual scan footprint, including prototype transforms, into soil. */
-export function seatBambooRocks(root:Object3D,kit:Object3D,ground:HeightAt){
+export function seatBambooRocks(root:Object3D,kit:Object3D,ground:HeightAt,include:(anchor:Object3D)=>boolean=()=>true){
   const point=new Vector3(),world=new Matrix4(),stats:{kind:string;before:number;after:number}[]=[]
   for(const kind of ['rock','ledge']){
     const prototypes:Object3D[]=[]
     kit.traverse(node=>{if(new RegExp('^forest_'+kind+'_\\d+$').test(node.name))prototypes.push(node)})
     if(!prototypes.length)continue
     const anchors:Object3D[]=[]
-    root.traverse(node=>{if(node.userData.prototype===kind)anchors.push(node)})
+    root.traverse(node=>{if(node.userData.prototype===kind&&include(node))anchors.push(node)})
     anchors.forEach((anchor,index)=>{
       const gaps:number[]=[]
       prototypes[index%prototypes.length].traverse(mesh=>{

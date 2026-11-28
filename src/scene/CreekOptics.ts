@@ -23,6 +23,10 @@ export function correctCreekMirrorDepth(root:Object3D){
   return changed
 }
 
+export const isCreekBedMesh=(name:string)=>
+  /^(terrain|root_bank_soil|submerged_stream_pebbles|creek_shallow_mineral_bar|creek_margin_cobbles|creek_margin_chips|creek_far_shore_stones)$/.test(name)
+  ||/^creek_contact_(rootwood|rootlets|wet_stones)$|^creek_bank_shingle_|^mossy_bank_stone_|^forest_(rock|ledge)_/.test(name)
+
 export function creekBedCapture(level:number,source:Mesh){
   source.updateWorldMatrix(true,false)
   const bounds=new Box3().setFromObject(source).expandByScalar(1.4),span=bounds.getSize(new Vector3()),center=bounds.getCenter(new Vector3())
@@ -62,8 +66,7 @@ export function creekBedCapture(level:number,source:Mesh){
     // above-water foliage, depth shells, the desk and glass cannot enter this map.
     scene.traverse(node=>{
       if(!(node instanceof Mesh)||!node.visible)return
-      const bed=/^(terrain|root_bank_soil|submerged_stream_pebbles|creek_shallow_mineral_bar|creek_margin_cobbles|creek_margin_chips|creek_far_shore_stones)$/.test(node.name)
-        ||/^creek_contact_(rootwood|rootlets|wet_stones)$|^creek_bank_shingle_|^mossy_bank_stone_|^forest_(rock|ledge)_/.test(node.name)
+      const bed=isCreekBedMesh(node.name)
       if(!bed){node.visible=false;hidden.push(node)}
     })
     try{
