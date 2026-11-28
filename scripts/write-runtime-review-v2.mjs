@@ -1,6 +1,6 @@
 import {readFile,writeFile,mkdir,copyFile} from 'node:fs/promises'
 import {resolve} from 'node:path'
-const qa=resolve('../runtime-qa/runtime-v2'),out=resolve('../../art/deliverables/woodland-runtime-v2'),read=async name=>JSON.parse(await readFile(resolve(qa,name),'utf8'))
+const qa=resolve(process.env.FLOWER_DELIVERY||'../runtime-qa/runtime-v2'),out=resolve('../../art/deliverables/woodland-runtime-v2'),read=async name=>JSON.parse(await readFile(resolve(qa,name),'utf8'))
 const build=await read('five-forms/build.json'),flow=await read('five-forms/verification.json'),carry=await read('five-forms/desk-carry.json'),fallback=await read('prepared-fallback/report.json'),orbit=await read('verified-orbit/report.json')
 const data={build:build.sha256.slice(0,12),checks:flow.reports.reduce((sum,r)=>sum+r.checks.length,0),unitTests:108,scenes:{}}
 await mkdir(resolve(out,'images'),{recursive:true});await mkdir(resolve(out,'records'),{recursive:true})

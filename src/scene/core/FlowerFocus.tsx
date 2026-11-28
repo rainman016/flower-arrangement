@@ -1,11 +1,12 @@
 import {useEffect,useMemo} from 'react'
 import {useFrame,useThree} from '@react-three/fiber'
 import {
-  Camera, Group, HalfFloatType, Light, LinearMipmapLinearFilter, Matrix4, Mesh, Object3D, OrthographicCamera,
-  PlaneGeometry, Scene, ShaderMaterial, UnsignedByteType, Vector2, WebGLRenderer, WebGLRenderTarget,
+  Camera, DirectionalLight, Group, HalfFloatType, Light, LinearMipmapLinearFilter, Matrix4, Mesh, Object3D, OrthographicCamera,
+  PlaneGeometry, RGBFormat, Scene, ShaderMaterial, UnsignedByteType, UnsignedInt101111Type, Vector2, WebGLRenderer, WebGLRenderTarget,
 } from 'three'
 import {useCoreStore} from '../../state/core-store'
 import type {CoreWorld} from './CoreCanvas'
+import {creekDepthPass} from '../CreekDepthPass'
 
 const focusLayer=11
 
@@ -15,9 +16,12 @@ function createFocusView(gl:WebGLRenderer){
   target.texture.generateMipmaps=true;target.texture.minFilter=LinearMipmapLinearFilter
   // Outdoors is behind the entire desk. Reuse just that colour pass during an insertion
   // gesture; the desk, glass, vase and every stem still share the live depth buffer.
-  const garden=new WebGLRenderTarget(1,1,{type:target.texture.type})
+  const garden=new WebGLRenderTarget(1,1,{type:UnsignedInt101111Type,format:RGBFormat,samples:2})
   const gardenCamera=new Matrix4(),gardenProjection=new Matrix4()
   let bench:Object3D|undefined,nature:Object3D|undefined,lastGarden=-Infinity
+  let creekDepth:ReturnType<typeof creekDepthPass>|undefined
+  let creekWater:Mesh|undefined
+  const gardenStats={renders:0,reused:0,viewUpdates:0}
   const quad=new Scene(),camera2d=new OrthographicCamera(-1,1,1,-1,0,1)
   const material=new ShaderMaterial({
     depthWrite:false,depthTest:false,
@@ -56,26 +60,43 @@ function createFocusView(gl:WebGLRenderer){
     const state=useCoreStore.getState(),id=state.heldId,stage=state.ritual?.stage
     const pour=stage==='prepare'&&state.pourPhase!=='carry'
     const subject=(state.vaseFocus||pour)?world.vase:id?world.flowers.get(id):undefined
-    if(!state.vaseFocus&&stage==='arrange'&&state.ritual?.arranging&&world.active&&['move','pose','rotate'].includes(world.active.kind)){
+    if(scene.userData.frameTransmission&&!state.vaseFocus&&!pour&&(stage==='prepare'||stage==='arrange'&&state.ritual?.arranging)&&world.active&&['carry','prop','move','pose','rotate'].includes(world.active.kind)){
       if(active)restore()
       if(!bench?.parent)bench=scene.getObjectByName('workbench_and_tools')
-      if(!nature?.parent)nature=scene.getObjectByName('three_dimensional_nature')
+      if(!nature?.parent)nature=scene.getObjectByName('three_dimensional_nature')??scene.getObjectByName('nature_environment')
       if(bench&&nature){
-        const w=Math.max(1,Math.round(Math.min(width*gl.getPixelRatio(),1100))),h=Math.max(1,Math.round(w*height/width))
+        const w=Math.max(1,Math.floor(width*gl.getPixelRatio())),h=Math.max(1,Math.floor(height*gl.getPixelRatio()))
         const now=performance.now(),oldTarget=gl.getRenderTarget(),background=scene.background
-        const update=gl.shadowMap.autoUpdate,needsUpdate=gl.shadowMap.needsUpdate
+        const update=gl.shadowMap.autoUpdate,needsUpdate=gl.shadowMap.needsUpdate,clear=gl.autoClear,linearTarget=scene.userData.frameLinearTarget,cachedNature=scene.userData.frameNatureCached
         const showBench=bench.visible,showNature=nature.visible
+        if(!creekWater){const water=scene.getObjectByName('creek_surface');if(water instanceof Mesh){creekWater=water;creekDepth=creekDepthPass(water)}}
+        const showWater=creekWater?.visible
         try{
-          gl.shadowMap.autoUpdate=false;gl.shadowMap.needsUpdate=false
-          if(now-lastGarden>350||garden.width!==w||garden.height!==h||!gardenCamera.equals(camera.matrixWorld)||!gardenProjection.equals(camera.projectionMatrix)){
-            bench.visible=false;garden.setSize(w,h);gl.setRenderTarget(garden);gl.render(scene,camera)
+          const viewChanged=garden.width!==w||garden.height!==h||!gardenCamera.equals(camera.matrixWorld)||!gardenProjection.equals(camera.projectionMatrix)
+          const refresh=now-lastGarden>=50||viewChanged
+          if(refresh){
+            garden.setSize(w,h);gl.setRenderTarget(garden);scene.userData.frameLinearTarget=garden
+            gl.shadowMap.autoUpdate=false;gl.shadowMap.needsUpdate=false
+            if(creekDepth){creekDepth.sync();gl.autoClear=true;gl.render(creekDepth.scene,camera);gl.autoClear=false}
+            gl.render(scene,camera);gl.autoClear=clear
             gardenCamera.copy(camera.matrixWorld);gardenProjection.copy(camera.projectionMatrix);lastGarden=now
-          }
-          bench.visible=showBench;nature.visible=false;scene.background=garden.texture
-          gl.setRenderTarget(oldTarget);gl.render(scene,camera)
+            gardenStats.renders++;if(viewChanged)gardenStats.viewUpdates++
+          }else gardenStats.reused++
+          scene.userData.deskEnvironmentCache=gardenStats
+          bench.visible=showBench;scene.background=garden.texture;scene.userData.frameNatureCached=true
+          if(creekWater)creekWater.visible=false
+          gl.shadowMap.autoUpdate=update;gl.shadowMap.needsUpdate=needsUpdate
+          // Retain real forest geometry for shadows while reusing only its
+          // colour. Update the sun on a light frame, separate from the outdoor
+          // colour refresh; desk/contact shadows still follow every movement.
+          const suns:{light:DirectionalLight;needs:boolean}[]=[]
+          if(refresh)scene.traverse(light=>{if(light instanceof DirectionalLight){suns.push({light,needs:light.shadow.needsUpdate});light.shadow.needsUpdate=false}})
+          try{gl.setRenderTarget(oldTarget);gl.render(scene,camera)}finally{for(const {light,needs}of suns)if(light.shadow)light.shadow.needsUpdate=needs}
         }finally{
           bench.visible=showBench;nature.visible=showNature;scene.background=background
-          gl.setRenderTarget(oldTarget);gl.shadowMap.autoUpdate=update;gl.shadowMap.needsUpdate=needsUpdate
+          if(creekWater)creekWater.visible=showWater!
+          gl.setRenderTarget(oldTarget);gl.shadowMap.autoUpdate=update;gl.shadowMap.needsUpdate=needsUpdate;gl.autoClear=clear;scene.userData.frameLinearTarget=linearTarget
+          scene.userData.frameNatureCached=cachedNature
         }
         return
       }
@@ -134,7 +155,7 @@ function createFocusView(gl:WebGLRenderer){
       camera.layers.mask=mask;scene.background=background;gl.autoClear=clear
     }
   }
-  return {draw,dispose(){restore();target.dispose();garden.dispose();plane.dispose();material.dispose()}}
+  return {draw,dispose(){restore();creekDepth?.dispose();target.dispose();garden.dispose();plane.dispose();material.dispose()}}
 }
 export function FlowerFocus({world}:{world:CoreWorld}){
   const gl=useThree(s=>s.gl),view=useMemo(()=>createFocusView(gl),[gl])

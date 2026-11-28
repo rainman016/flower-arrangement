@@ -2,7 +2,7 @@ import {creekDepthPass} from './CreekDepthPass'
 import {displayLightTexture} from './display-light'
 import {createContext,useEffect,useLayoutEffect,useMemo,type ReactNode} from 'react'
 import {useThree} from '@react-three/fiber'
-import {UnsignedInt101111Type,RGBFormat,LinearMipmapLinearFilter,Mesh,OrthographicCamera,PlaneGeometry,Scene,ShaderMaterial,Vector2,WebGLRenderTarget,type Texture,type Material} from 'three'
+import {UnsignedInt101111Type,RGBFormat,LinearMipmapLinearFilter,Mesh,OrthographicCamera,PlaneGeometry,Scene,ShaderMaterial,Vector2,WebGLRenderTarget,type Texture,type Material,type Object3D} from 'three'
 import {lowWoodlandQuality} from './render-quality'
 
 export const FrameTransmission=createContext<{texture:Texture;size:Vector2}|null>(null)
@@ -23,9 +23,24 @@ export function FrameRendering({children}:{children:ReactNode}){
  },[gl,scene])
  useLayoutEffect(()=>{
   if(!frame)return
-  const render=gl.render,draw=gl.renderBufferDirect,size=new Vector2()
+  const render=gl.render,draw=gl.renderBufferDirect,size=new Vector2(),rootScene=scene
   let water:Mesh|undefined,creekDepth:ReturnType<typeof creekDepthPass>|undefined
   let phase:'idle'|'opaque'|'overlay'='idle',view:Parameters<typeof gl.render>[1]|undefined
+  const workbench=new WeakMap<Object3D,boolean>()
+  const outdoors=new WeakMap<Object3D,boolean>()
+  const onWorkbench=(object:Object3D)=>{
+   const cached=workbench.get(object);if(cached!==undefined)return cached
+   let found=false;for(let parent:Object3D|null=object;parent;parent=parent.parent)if(parent.name==='workbench_and_tools'||parent.name==='tool_contact_shadows'){found=true;break}
+   workbench.set(object,found);return found
+  }
+  const inNature=(object:Object3D)=>{
+   const cached=outdoors.get(object);if(cached!==undefined)return cached
+   let found=false;for(let parent:Object3D|null=object;parent;parent=parent.parent)if(parent.name==='three_dimensional_nature'||parent.name==='nature_environment'){found=true;break}
+   outdoors.set(object,found);return found
+  }
+  // Opaque desk surfaces cover much of the forest in the seated view. Write
+  // their depth first, retaining explicit draw order and transparent sorting.
+  gl.setOpaqueSort((a,b)=>a.groupOrder-b.groupOrder||a.renderOrder-b.renderOrder||Number(onWorkbench(b.object))-Number(onWorkbench(a.object))||a.material.id-b.material.id||a.z-b.z||a.id-b.id)
   scene.userData.frameTransmission=true
   const displays=new Map<Material,{before:Material['onBeforeCompile'];key:Material['customProgramCacheKey'];linear:{value:number};exposure:{value:number}}>()
   const prepareDisplay=(material:Material)=>{
@@ -43,13 +58,18 @@ export function FrameRendering({children}:{children:ReactNode}){
   }
   scene.traverse(o=>{if(o instanceof Mesh)for(const m of Array.isArray(o.material)?o.material:[o.material])prepareDisplay(m)})
   gl.renderBufferDirect=function(camera,scene,geometry,material,object,group){
+   // Keep the workbench present for real shadow maps, but omit its colour from
+   // the cached outdoor pass. It is drawn live in front of that pass every frame.
+   if(rootScene.userData.frameLinearTarget&&gl.getRenderTarget()===rootScene.userData.frameLinearTarget&&onWorkbench(object))return
    if(phase!=='idle'&&camera===view&&gl.getRenderTarget()===frame.colour){
+    if(rootScene.userData.frameNatureCached&&inNature(object))return
     const overlay=object!==water&&(material.transparent||material.userData.frameTransmission===true)
     if((phase==='opaque'&&overlay)||(phase==='overlay'&&!overlay))return
    }
-   if(gl.getRenderTarget()===frame.colour)prepareDisplay(material)
+   const linear=gl.getRenderTarget()===frame.colour||Boolean(rootScene.userData.frameLinearTarget&&gl.getRenderTarget()===rootScene.userData.frameLinearTarget)
+   if(linear)prepareDisplay(material)
    const display=displays.get(material)
-   if(display){display.linear.value=gl.getRenderTarget()===frame.colour?1:0;display.exposure.value=gl.toneMappingExposure;if(material instanceof ShaderMaterial)material.uniformsNeedUpdate=true}
+   if(display){display.linear.value=linear?1:0;display.exposure.value=gl.toneMappingExposure;if(material instanceof ShaderMaterial)material.uniformsNeedUpdate=true}
    return draw.call(this,camera,scene,geometry,material,object,group)
   }
   gl.render=function(object,camera){
@@ -78,7 +98,7 @@ export function FrameRendering({children}:{children:ReactNode}){
     render.call(this,frame.output,frame.camera)
    }finally{phase='idle';view=undefined;gl.autoClear=clear;gl.shadowMap.autoUpdate=shadow;gl.info.autoReset=reset;gl.setRenderTarget(null)}
   }
-  return()=>{creekDepth?.dispose();gl.render=render;gl.renderBufferDirect=draw;delete scene.userData.frameTransmission;for(const [material,old]of displays){material.onBeforeCompile=old.before;material.customProgramCacheKey=old.key;material.needsUpdate=true}}
+  return()=>{creekDepth?.dispose();gl.setOpaqueSort(null);gl.render=render;gl.renderBufferDirect=draw;delete scene.userData.frameTransmission;for(const [material,old]of displays){material.onBeforeCompile=old.before;material.customProgramCacheKey=old.key;material.needsUpdate=true}}
  },[gl,scene,frame])
  useEffect(()=>()=>{frame?.displayLight.dispose();frame?.colour.dispose();frame?.transmitted.dispose();frame?.material.dispose();frame?.geometry.dispose()},[frame])
  return <FrameTransmission.Provider value={frame?.transmission??null}>{children}</FrameTransmission.Provider>
